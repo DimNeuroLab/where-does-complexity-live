@@ -45,12 +45,12 @@ prediction on the search target.*
 ## Repository status
 
 This repository is being prepared as the cleaned research code release for the
-paper. The [complexity component](complexity/README.md) now contains organized,
-renamed copies of the relevant research scripts and a preserved NSD ranking.
-Script contents are unchanged, and full-flow reproduction is still pending.
-The other components in the layout below remain planned. Installation instructions,
-experiment configurations, and reproduction commands will be added as each
-component is prepared and checked.
+paper. The [complexity component](complexity/README.md) provides a configurable
+pipeline, the image-to-ranking flow, pinned fitting dependencies, ScanDiff
+integration, and the preserved NSD ranking used by Route B. Its
+[validation record](docs/complexity_validation.md) distinguishes deterministic
+replay, model refitting, and inference smoke tests. The other components in the
+layout below remain planned.
 
 ## Scientific workflow
 
@@ -141,9 +141,9 @@ whitespace settings for compatible editors; the remaining conventions are
 documented for authors and reviewers.
 
 The [complexity code inventory](docs/complexity_inventory.md) maps the existing
-research code to the manuscript and records provenance questions to resolve
-before validating reproduction. The [complexity README](complexity/README.md)
-documents the copied files and their current execution constraints.
+research code to the manuscript and records provenance and deferred decisions.
+The [complexity README](complexity/README.md) documents the full flow, inputs,
+commands, model settings, and output checks.
 
 ## Paper and citation
 

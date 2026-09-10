@@ -1,0 +1,91 @@
+{
+  "description": "Original source hashes and current migrated hashes. Source projects are external research workspaces.",
+  "files": [
+    {
+      "source": "conv.py",
+      "destination": "preprocessing/convert_scanpaths.py",
+      "source_project": "complexity",
+      "source_sha256": "600ebbb25e00e3c47dc8d914f6d12ff1f4e4343a622be727d127ad9cea42d435",
+      "current_sha256": "600ebbb25e00e3c47dc8d914f6d12ff1f4e4343a622be727d127ad9cea42d435"
+    },
+    {
+      "source": "correct_nsd_errors.py",
+      "destination": "preprocessing/correct_nsd_targets.py",
+      "source_project": "complexity",
+      "source_sha256": "11462144a1c423292a50cca4485feca3c4f29f750801c2ec8281db1811230b07",
+      "current_sha256": "810a562150feb7640c9e3cf109fd95d3f49d643a84ba11f2f9f17961f9334633"
+    },
+    {
+      "source": "estimate_complexity_gpt_final_2.py",
+      "destination": "models/fit_response_time.py",
+      "source_project": "complexity",
+      "source_sha256": "44be63144d9278f4328af08332a3bdd193718a97a529aee34b7b0a5147e221c4",
+      "current_sha256": "4a77d2adbc9c2f90739b849a1f62033129e9432a6e57dd9a0ef98df54709093c"
+    },
+    {
+      "source": "estimate_complexity_fixations.py",
+      "destination": "models/fit_movement_count.py",
+      "source_project": "complexity",
+      "source_sha256": "8752b2ee7e6f51cde9f9715faa2eb050b15d1f4e3cae78f581bdc2fe496862d4",
+      "current_sha256": "39193a04443956dd8be81fb7a503f391df2f3028b12b43b60158044e602d9720"
+    },
+    {
+      "source": "compute_ranking_mean_n.py",
+      "destination": "models/mean_count_baseline.py",
+      "source_project": "complexity",
+      "source_sha256": "358f9f7772786ec85460df2803b138b7d3c62b6c38df54539dbc9ac92d9c18c8",
+      "current_sha256": "2b375ddf9924a8d8d7e537d1a44e6e123f28589b3d9648090a4739d16adc6edf"
+    },
+    {
+      "source": "compare_rankings.py",
+      "destination": "evaluation/compare_rankings.py",
+      "source_project": "complexity",
+      "source_sha256": "cf56b31535cb072d7509f192cbfbeb0ec4f1cb7972bf06e20f5f4782769b3a7e",
+      "current_sha256": "cf56b31535cb072d7509f192cbfbeb0ec4f1cb7972bf06e20f5f4782769b3a7e"
+    },
+    {
+      "source": "compare_two_rankings.py",
+      "destination": "evaluation/compare_ranking_pair.py",
+      "source_project": "complexity",
+      "source_sha256": "6dea2387a61e099a8daf499282f91e02d57f3cda5fcbdc6261b2bd0adb189717",
+      "current_sha256": "353be1f9f925bf1f958d98d6b9ac3bf7e547464ad46ed35d4cdfa0da7ca457a7"
+    },
+    {
+      "source": "visualize_difficulty_distribution.py",
+      "destination": "exports/export_rankings.py",
+      "source_project": "complexity",
+      "source_sha256": "5bd8f659564d1377e44424cf71fb8f17090b0487f4c61eb9aff989e17c8b0ae6",
+      "current_sha256": "8f4fd5ad80adc5e1920f46ad490d07e02e1fbe970517541904b8583f6c228493"
+    },
+    {
+      "source": "visualize_difficulty.py",
+      "destination": "visualization/plot_ranked_images.py",
+      "source_project": "complexity",
+      "source_sha256": "c94a4ecc95fe199db42549b7516dad0a6290edbc49b90b6bad24850e16b2af09",
+      "current_sha256": "839d0a7b413dcfde842b810c0e24e2f7ce0b0a80f07028abec664a66c40df534"
+    },
+    {
+      "source": "difficulty_rankings_nsd_no_knife/full_ranking_M2_n_studentT.csv",
+      "destination": "reference/nsd_m2_ranking.csv",
+      "source_project": "complexity",
+      "source_sha256": "2101a2143b00da45625afeaeda08880c70761f825efb0a7c17769624c0a0e6fb",
+      "current_sha256": "2101a2143b00da45625afeaeda08880c70761f825efb0a7c17769624c0a0e6fb"
+    },
+    {
+      "source_project": "ScanDiff",
+      "source": "generate_scanpaths.py",
+      "destination": "generation/generate_scanpaths.py",
+      "relationship": "adapted",
+      "source_sha256": "90bfd4ce70bed8bfc34d20bba7da507605f1ae6ac98799de2fe04516a441076e",
+      "current_sha256": "07b5f7f745c5da82c3daac2af1763931e32e3abcdaf50f1e6bac142c16a4a396"
+    },
+    {
+      "source_project": "preds",
+      "source": "scripts/12_compute_complexity_variance.py",
+      "destination": "evaluation/compute_variance.py",
+      "relationship": "adapted",
+      "source_sha256": "9410a985116589805065627f10ad30c258f9481696dfe743ab8c70744d4a50ad",
+      "current_sha256": "c46bded529a6454c55fc8aa52a1ec605179c4926bbf166c6711fb9edbe549564"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "output_dir": "${COMPLEXITY_OUTPUT}",
+  "inputs": {
+    "human_scanpaths": "${COMPLEXITY_DATA}/coco_search18_fixations_TP_merged.json",
+    "coco_scanpaths": "${COMPLEXITY_DATA}/coco_search18_all_scanpaths.json",
+    "nsd_scanpaths": "${COMPLEXITY_DATA}/nsd_all_scanpaths.json",
+    "nsd_metadata": "${BRAIN_DATA}/nsd_augmentation_data/metadata.json",
+    "coco_images": "${BRAIN_DATA}/coco_search_18/images",
+    "coco_bboxes": "${BRAIN_DATA}/coco_search_18/coco_search18_bboxes.json",
+    "nsd_images": "${BRAIN_DATA}/nsd_complexity/images",
+    "nsd_bboxes": "${BRAIN_DATA}/nsd_complexity/nsd_bboxes.json"
+  },
+  "sampling": {
+    "draws": 2000,
+    "tune": 2000,
+    "chains": 4,
+    "seed": 42,
+    "target_accept": 0.95,
+    "cv_splits": 5,
+    "cv_draws": 600,
+    "cv_tune": 600,
+    "cv_chains": 2
+  },
+  "generation": {
+    "checkout": "${SCANDIFF_ROOT}",
+    "python": "${SCANDIFF_PYTHON}",
+    "devices": [
+      "cuda:0",
+      "cuda:1",
+      "cuda:2",
+      "cuda:3"
+    ],
+    "seed": 1000,
+    "precision": "amp",
+    "profiles": {
+      "coco": {
+        "devices": [
+          "cuda:0"
+        ],
+        "precision": "float32"
+      }
+    }
+  }
+}
