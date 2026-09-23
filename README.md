@@ -153,3 +153,9 @@ Valentyn Piskovskyi, Marco Fagnani, and Dimitri Ognibene. Manuscript submitted t
 *International Journal of Computer Vision*.
 
 A public paper link and machine-readable citation will be added when available.
+
+## Engineered Route A code
+
+The [engineered Route A package](route_a/engineered/README.md) provides training
+and prediction for image and search target pairs. Its guide covers installation
+and usage; [data setup](docs/data_setup.md) covers the required inputs.
