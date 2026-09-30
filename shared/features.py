@@ -1,7 +1,7 @@
 """DINOv2 and CLIP ViT-L/14 embedding extraction for NSD training images.
 
-Reused by Route A (embedding-conditioned stimulus readout) and Route B
-(neural readout auxiliary targets and text conditioning).
+Used by Route A's embedding-conditioned stimulus readout. Route B retains
+its own feature extraction implementation.
 """
 
 from __future__ import annotations

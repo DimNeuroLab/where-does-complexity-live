@@ -1,9 +1,5 @@
 # Behavioural complexity estimation
 
-For the subsequent RT provenance findings, successful-trial protocol, and corrected
-CV investigation, see the [revised comparison](../docs/complexity_corrected_protocol.md).
-The reproduction results below describe the earlier historical run.
-
 This component estimates visual-search complexity from human and generated
 scanpaths. COCO-Search18 supports the measurement-model comparisons. Applying the
 selected M2 count model to ScanDiff predictions for NSD produces the complexity
@@ -12,7 +8,7 @@ labels consumed by Routes A and B.
 The pipeline accepts explicit data paths, runs the complete model registries,
 and records sampling settings and diagnostics. Large datasets, checkpoints, and
 run outputs are external to this repository. The preserved
-[Route B reference](reference/nsd_m2_ranking.csv) contains 12,447 rows across
+[Route B reference](nsd_m2_ranking.csv) contains 12,447 rows across
 16 target categories.
 
 The complete image-generation and fitting run finished on 12 September 2026.
@@ -147,8 +143,7 @@ A historical posterior and a fresh refit use different verification criteria.
 The count suite enables M1-M4. The RT suite enables M1-M4 and all five joint
 variants. Both human and generated tables are fitted. The runner computes LOO
 and five-fold cell-held-out CV with 600 draws, 600 tuning steps, and two chains
-per fold. These are explicit reproduction settings, not verified historical CV
-settings. The baseline uses the generated COCO table and is saved under
+per fold, following the recovered historical CV settings. The baseline uses the generated COCO table and is saved under
 `rankings/predicted_mean/`. Comparisons use human M2-N for
 Figure 4a, matching the recovered plotted result and the author's planned caption
 correction. Other figure comparisons are identified explicitly in `run.py`.
@@ -173,9 +168,8 @@ To rescore a completed RT suite without refitting or replacing its artifacts:
 ```
 
 The scorer verifies the recorded input and scientific source hashes, reuses the
-recorded seed and count-integration setting, and records posterior hashes. Use
-this command for the archived run; normal `--resume` correctly rejects its old
-runner hash after the scoring correction.
+recorded seed and count-integration setting, and records posterior hashes. Archived runs require the matching source version; both rescoring and normal
+`--resume` reject incompatible recorded source or settings.
 
 Individual suites also expose `--models` for shorter investigations:
 
@@ -191,6 +185,41 @@ selects stages; they always execute in pipeline order. `--resume` permits model
 checkpoint reuse only when recorded source, input hash, packages, and settings
 match. Errors stop the pipeline and remain visible in its stage logs.
 
+## Run the unfiltered synthetic RT-table workflow
+
+Select `coco-rt-tables` explicitly to prepare target-present synthetic trials without
+success filtering and run the nine RT models for comparison with Tables 1 and A1:
+
+```bash
+.venv/bin/python -m complexity.run \
+  --config complexity/config.example.json --profile coco-rt-tables
+```
+
+The default stages are `prepare fit export compare`. To prepare inputs without fitting:
+
+```bash
+.venv/bin/python -m complexity.run \
+  --config complexity/config.example.json --profile coco-rt-tables --stages prepare
+```
+
+This profile requires `inputs.coco_scanpaths` for preparation and writes
+`trials/coco_unfiltered.csv`, `coco_unfiltered_rt/`, `rankings/coco_unfiltered_rt/`,
+and `comparisons/rt_tables/`. With the frozen scanpaths, preparation yields 31,010 trials
+and 2,779 image labels. The model definitions and sampling settings are the existing RT suite.
+Joint CV uses the recovered parameter expansion; joint LOO retains marginal count integration.
+
+Optional `generate` uses the COCO generation configuration and image/box inputs.
+`variance`, `verify`, and `--posterior` are not supported by this profile.
+Only inputs needed by selected stages must be configured. `compare` can run separately:
+
+```bash
+.venv/bin/python -m complexity.evaluation.compare_paper_tables \
+  --run /path/to/output --tables 1 A1 --output /path/to/table_comparison
+```
+
+The existing `coco` profile continues to fit human and successful-synthetic inputs for
+the ranking figures. `all` still selects `coco` and `nsd`; it does not add the RT-table profile.
+
 ## Regenerate scanpaths from prepared images
 
 ScanDiff remains an external dependency. The
@@ -202,7 +231,8 @@ plotting call and making input, output, device, and seed explicit.
 Create a separate environment with [generation requirements](generation/requirements.txt).
 Supply the recovered ScanDiff checkout, including `src/`, `configs/`,
 `checkpoints/scandiff_visualsearch.pth`, and `data/task_embeddings.npy`. DINOv2
-weights must be cached or downloadable at first use.
+weights must be cached or downloadable at first use. The required source/configuration files
+and scientific artifacts are identified in [the generation manifest](generation/source_manifest.json).
 
 ```bash
 python3.12 -m venv .venv-scandiff

@@ -4,6 +4,24 @@ The reproduction target is the existing `AIPA_IJCV_26.pdf` manuscript. This docu
 historical behavior from uncertain provenance. Historical reproduction and later methodological corrections
 are separate experiments. Reproducing a computation does not establish its statistical validity.
 
+## Verification scope
+
+The submitted Route A recipes are provisionally accepted from their authors. Known source differences
+remain documented below; accepting the contributions does not establish numerical equivalence to the paper.
+Numerical tolerances are approved only within their experiment-specific populations and validity requirements.
+
+| Capability | Status | Evidence or limitation |
+| --- | --- | --- |
+| Engineered Route A training and prediction | Implemented, independently unverified | Schema, synthetic training and CLI software checks pass; paper results were not rerun. |
+| Engineered full feature grid and fMRI/PLS16 augmentation | Missing | Final experiment source and feature tables are also unavailable. |
+| Embedding Route A main/global/per-subject workflows | Implemented, independently unverified | Main model definition was checked on synthetic tensors; historical trained checkpoint replay is unavailable. |
+| Embedding feature-family ablations | Implemented, independently unverified | Contributed flags are retained; authoritative feature-specific artifacts were not recovered. |
+| Route A identity-bearing variance workflow | Missing | Required original predictions and decomposition source were not recovered. |
+| Complexity historical joint CV calculation | Independently checked | Five joint variants match the frozen original on synthetic posteriors; this is not a full scientific rerun. |
+| Unfiltered RT-table input preparation | Independently checked | 31,010 trials and 2,779 labels; the prepared CSV matches the previous provenance probe byte for byte. Full table reproduction remains unresolved. |
+| Canonical NSD labels | Independently checked | All 12,447 rows retain the original bytes, order and scores. |
+| Route B historical workflow | Independently checked | Existing checkpoint, feature and public-workflow evidence remains applicable to unchanged scientific code. |
+
 ## Complexity
 
 ### C-1. Response-time table provenance differs from the captions
@@ -29,13 +47,13 @@ the recovered tables, source identities, commands and numerical comparisons.
 
 **Status and evidence:** Confirmed original scoring error. The original scorer concatenates predicted
 means in blocks containing every posterior draw, but expands shape and scale parameters with `repeat`.
-Matching those blocks requires `tile`. The current [RT CV code](complexity/models/fit_response_time.py)
-already uses the corrected expansion.
+Matching those blocks requires `tile`. The publication [RT CV code](complexity/models/fit_response_time.py)
+retains the original `repeat` expansion.
 
 **Consequences:** Joint predictive ELPD and RMSE can change. Fitted posteriors and ranking exports are
 unaffected. The full historical effect is unknown without the original fold posteriors. **Historical
-behavior:** an explicit historical reproduction path must retain the original pairing; the corrected
-scorer belongs to a separate path. That separation still requires implementation. **Deferred remedy:**
+behavior:** the publication path retains the original pairing. The corrected scorer, tests and experiment
+records are preserved externally and are not publication commands. **Deferred remedy:**
 use aligned pairing for corrected experiments and report new scores.
 
 The [runner's joint LOO preparation](complexity/models/runner.py) is a separate issue: it restores an
@@ -85,7 +103,8 @@ Posterior sampling acceptance and PSIS-LOO reliability are separate checks.
 **Historical behavior:** retain original outputs with their diagnostic status; do not replace them with
 newer corrected outputs merely because those exist. **Deferred remedy:** investigate identifiability,
 sampling and scoring in a separate corrected study. See the [model runner](complexity/models/runner.py)
-and [corrected comparison](complexity/evaluation/run_corrected_comparison.py).
+and [sampling diagnostics](complexity/models/sampling.py). Corrected-comparison source and results remain
+externally preserved with their original experimental records.
 
 ### C-6. Fresh NSD scanpaths do not preserve label membership
 
@@ -156,8 +175,10 @@ and depth 5 to absolute error, 300 trees and depth 6. Row-based CV and preproces
 folds with preprocessing fitted within each fold.
 
 **Consequences:** Predictions and metrics can change materially; numerical equivalence is not established.
-**Historical behavior:** actual original recipes must remain distinct from generic prediction functionality.
-**Deferred remedy:** restore experiment-specific recipes from evidence before claiming fidelity. Sources:
+**Retained behavior:** keep PR #1's submitted recipe as provisionally accepted from its author. Its paper
+results have not been independently verified. Do not present the recovered notebook and this recipe as
+numerically equivalent. **Deferred remedy:** reconcile experiment-specific recipes and final provenance
+before claiming independent paper fidelity. Sources:
 [original notebook](https://github.com/DimNeuroLab/aipa/blob/970c95f180ac1b2befabd656f2437c3416d3b5db/image_to_complexity_coco.ipynb),
 [PR #1 training](https://github.com/DimNeuroLab/where-does-complexity-live/blob/94cf8e2e26ac07bee34d80c36dcf2327247df66d/route_a/engineered/training.py)
 and [datasets](https://github.com/DimNeuroLab/where-does-complexity-live/blob/94cf8e2e26ac07bee34d80c36dcf2327247df66d/route_a/engineered/datasets.py).
@@ -197,7 +218,7 @@ and [PR #1 loader](https://github.com/DimNeuroLab/where-does-complexity-live/blo
 ### A2-1. Row folds share images and use global category means
 
 **Status and evidence:** Confirmed inherited behavior. The dataset retains all 12,108 training records,
-despite a docstring describing unique pairs. Shuffled row folds put 476, 480, 454, 487 and 482 physical
+including repeated image-target pairs; the dataset documentation now describes that behavior. Shuffled row folds put 476, 480, 454, 487 and 482 physical
 images on both sides of training and validation. Category means are computed from all records before folding.
 
 **Consequences:** This is not the common image-grouped outer CV described in the cross-route manuscript
@@ -240,7 +261,8 @@ ablations, not this model.
 
 **Consequences:** Main-model definition equivalence cannot validate feature-family results or recover trained
 weights. **Historical behavior:** retain the combined small/noise-zero recipe with saved Table 6 and Figure 6
-evidence. **Deferred remedy:** recover feature-specific artifacts and correct paper references. See the
+evidence. **Retained behavior:** keep the contributed feature-family flags as implemented but independently unverified.
+**Deferred remedy:** recover feature-specific artifacts. Current documentation identifies Figure B1 correctly. See the
 [PR #2 README](https://github.com/DimNeuroLab/where-does-complexity-live/blob/174c84cce03686adc665cab4890a7342d0cbf1e8/route_a/embedding/README.md).
 
 ## Cross-route analyses
@@ -275,3 +297,17 @@ arithmetic. **Historical behavior:** retain experiment-specific parameters and f
 **Deferred remedy:** share implementations only after explicit equivalence checks, preserving intentional
 differences. See [B models](route_b/models/complexity.py), [B features](route_b/features/dino.py) and
 [PR #2 shared head](https://github.com/DimNeuroLab/where-does-complexity-live/blob/174c84cce03686adc665cab4890a7342d0cbf1e8/shared/complexity_head.py).
+
+### X-3. ScanDiff acquisition is not fully specified by a public source revision
+
+**Status and evidence:** Unresolved acquisition information. The external ScanDiff checkout, configuration,
+visual-search checkpoint and task embeddings are identified by the recovered file hashes in the
+[generation manifest](complexity/generation/source_manifest.json). The original AIPA README links an
+installation tutorial, but that link does not establish a verified public source revision and download
+for every required artifact.
+
+**Consequences:** Saved-scanpath workflows can run with explicit inputs; a new user still needs the matching
+external ScanDiff materials for regeneration. **Retained behavior:** use the explicit external checkout and
+artifact inputs described in the [generation instructions](complexity/README.md#regenerate-scanpaths-from-prepared-images).
+**Deferred remedy:** establish and verify an accessible, versioned acquisition route. Do not substitute a
+different source or weights merely because they are downloadable.

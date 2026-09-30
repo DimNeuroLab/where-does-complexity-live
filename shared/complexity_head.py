@@ -16,9 +16,8 @@ Heteroscedastic regression: the head outputs both a mean prediction and a
 learned log-variance per sample, so that predictions with an inherently
 noisy mapping to complexity are automatically downweighted by the loss.
 
-This head is reused, unmodified, by Route A's embedding-conditioned
-predictor (``route_a/embedding``) and by Route B's neural readout, which is
-why it lives in ``shared/`` rather than with either route.
+This head is used by Route A's embedding-conditioned predictor
+(``route_a/embedding``). Route B retains its own head implementation.
 """
 
 from __future__ import annotations
