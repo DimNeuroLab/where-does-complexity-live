@@ -12,16 +12,16 @@ Numerical tolerances are approved only within their experiment-specific populati
 
 | Capability | Status | Evidence or limitation |
 | --- | --- | --- |
-| Engineered Route A training and prediction | Implemented, independently unverified | Schema, synthetic training and CLI software checks pass; paper results were not rerun. |
+| Engineered Route A training and prediction | Implemented, independently unverified | Schema, grouped training, bundle and CLI checks pass, including four real images and two test targets; paper results were not rerun. |
 | Engineered full feature grid and fMRI/PLS16 augmentation | Missing | Final experiment source and feature tables are also unavailable. |
-| Embedding Route A main/global/per-subject workflows | Implemented, independently unverified | Main model definition was checked on synthetic tensors; historical trained checkpoint replay is unavailable. |
+| Embedding Route A main/global/per-subject workflows | Implemented, independently unverified | Twelve architecture/feature variants pass forward and state-loading checks; four-image extraction runs. Historical trained checkpoint replay is unavailable. |
 | Embedding feature-family ablations | Implemented, independently unverified | Contributed flags are retained; authoritative feature-specific artifacts were not recovered. |
 | Route A identity-bearing variance workflow | Missing | Required original predictions and decomposition source were not recovered. |
 | Cross-route analysis workflow | Missing | The code retains Complexity and Route B variance utilities, but no complete common-population cross-route workflow. |
 | Complexity historical joint CV calculation | Independently checked | Five joint variants match the frozen original on synthetic posteriors; this is not a full scientific rerun. |
 | Unfiltered RT-table input preparation | Independently checked | 31,010 trials and 2,779 labels; the prepared CSV matches the previous provenance probe byte for byte. Full table reproduction remains unresolved. |
 | Canonical NSD labels | Independently checked | All 12,447 rows retain the original bytes, order and scores. |
-| Route B historical workflow | Independently checked | Existing checkpoint, feature and public-workflow evidence remains applicable to unchanged scientific code. |
+| Route B historical workflow | Independently checked | All five saved endpoints replay exactly across five folds and 18,736 observations each. Prediction variance and the four-row CPU replay also agree; fresh-run metrics meet their approved limits. |
 
 ## Complexity
 
@@ -323,10 +323,22 @@ round trips and synthetic interruption/recovery checks exercise supported behavi
 cleanup preserves executable calculations; historical CV fixtures and marginal LOO checks use synthetic
 posteriors without sampling. These checks do not independently reproduce Route A's reported results.
 
+Independent Linux/Python 3.12 installations of all five component extras and their lockfiles load the
+supported commands without research-environment overlays. The Complexity environment compiles count-M2
+and RT-M2 log densities on small fixtures without sampling. It reports no linked BLAS; full sampling
+throughput in that clean environment has not been benchmarked.
+
+Real-model checks use four images per feature implementation. They establish dimensions, finite values,
+input ordering, text-category coverage and cache behavior, not scientific performance or complete feature-bank
+reproduction. ScanDiff produces ten viewer records for each of two valid images in both retained precision
+modes, skips an unreadable fixture, and resumes to byte-identical float32 output after interruption.
+Generation checks use explicitly supplied, hash-verified external source and weights; they do not resolve
+acquisition or fresh NSD population differences.
+
 The Route A lockfiles record the environment used for bounded validation, including XGBoost 3.4.1.
 They are not recovered original training environments. Submitted feature loaders retain their model
-identifiers and unpinned source choices; Route B's pinned backbone recipe is separate. Full clean-install
-validation and full scientific reruns are different checks.
+identifiers and unpinned source choices; Route B's pinned backbone recipe is separate. These installation and execution checks do not
+independently verify Route A paper results or replace full scientific reruns.
 
 **Consequences:** An import, synthetic fit or lockfile alone cannot support a paper-result reproduction claim.
 **Retained behavior:** preserve submitted recipes, saved formats and historical inputs; use the component
