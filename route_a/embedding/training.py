@@ -2,7 +2,7 @@
 
 Trains :func:`route_a.embedding.model.make_model` with k-fold cross-validation.
 The paper's main model (Fig. 5/6, Table 6) uses ``--arch small --features all
---noise 0``. The feature-family ablation (Appendix Fig./Table B1) reruns this
+--noise 0``. The feature-family ablation (Appendix Figure B1) reruns this
 with ``--features clip_only`` and ``--features dino_only``.
 
 Noise augmentation (``--noise``) was only used to test its effect on training
@@ -161,10 +161,9 @@ def run_kfold(
   """Run k-fold cross-validated training and write per-fold and deployment checkpoints.
 
   Each per-fold checkpoint stores its ``val_idx``, so evaluation code can
-  reconstruct the exact held-out set without leakage. The deployment
+  reconstruct the stored validation row set. The deployment
   checkpoint is retrained on the full dataset afterwards and must not be
-  evaluated on any held-out split; the k-fold Pearson r is the honest
-  performance estimate.
+  evaluated on any held-out split; the fold summary and checkpoint evaluation report their respective metrics.
   """
   checkpoint_dir.mkdir(parents=True, exist_ok=True)
   fold_rs: list[float] = []
@@ -259,20 +258,41 @@ def add_common_arguments(parser: argparse.ArgumentParser) -> None:
   """Add the data-location flags shared by every route_a.embedding entry point."""
   parser.add_argument('--nsd-root', type=Path, required=True, help='Root of the NSD/Algonauts-2023 data tree.')
   parser.add_argument('--dino-dir', type=Path, required=True, help='Directory with {subject}_dino_layers.npy files.')
-  parser.add_argument('--clip-image-dir', dest='clip_img_dir', type=Path, required=True, help='Directory with {subject}_clip_img.npy files.')
-  parser.add_argument('--clip-text-file', dest='clip_text_path', type=Path, required=True, help='Path to the CLIP text embeddings .npz file.')
+  parser.add_argument(
+    '--clip-image-dir',
+    dest='clip_img_dir',
+    type=Path,
+    required=True,
+    help='Directory with {subject}_clip_img.npy files.',
+  )
+  parser.add_argument(
+    '--clip-text-file',
+    dest='clip_text_path',
+    type=Path,
+    required=True,
+    help='Path to the CLIP text embeddings .npz file.',
+  )
   parser.add_argument('--ranking-file', dest='complexity_csv', type=Path, required=True, help='Complexity-ranking CSV.')
 
 
 def build_parser() -> argparse.ArgumentParser:
-  parser = argparse.ArgumentParser(allow_abbrev=False, description='Train the embedding-conditioned complexity model with k-fold CV.')
+  parser = argparse.ArgumentParser(
+    allow_abbrev=False,
+    description='Train the embedding-conditioned complexity model with k-fold CV.',
+  )
   add_common_arguments(parser)
-  parser.add_argument('--output-dir', dest='out', type=Path, required=True, help='Output directory for checkpoints and results.')
+  parser.add_argument(
+    '--output-dir',
+    dest='out',
+    type=Path,
+    required=True,
+    help='Output directory for checkpoints and results.',
+  )
   parser.add_argument('--arch', default='small', choices=[*ARCH_CONFIGS, 'direct'])
   parser.add_argument(
     '--features', default='all', choices=['all', 'clip_only', 'dino_only'],
     help="Which image embeddings feed the model. 'all' is the paper's main model (Fig. 5/6, Table 6); "
-         "'clip_only'/'dino_only' reproduce the ablation in Appendix Fig./Table B1.",
+         "'clip_only'/'dino_only' reproduce the ablation in Appendix Figure B1.",
   )
   parser.add_argument('--cv-folds', dest='folds', type=int, default=5)
   parser.add_argument('--epochs', type=int, default=100)

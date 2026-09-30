@@ -6,7 +6,7 @@ embeddings (no fMRI), with FiLM target conditioning from
 
 The encoder input is selected by ``features``: ``'all'`` (DINO + CLIP, the
 paper's main model, Fig. 5/6 and Table 6) or ``'clip_only'`` / ``'dino_only'``
-(the feature-family ablation, Appendix Fig./Table B1).
+(the feature-family ablation, Appendix Figure B1).
 """
 
 from __future__ import annotations
@@ -341,7 +341,7 @@ def make_model(arch: str, features: FeatureSet = 'all', n_categories: int = 16) 
     :class:`Encoder` + :class:`ComplexityHead <shared.complexity_head.ComplexityHead>` model, or
     ``'direct'`` for a :class:`DirectFeedModel` with no encoder MLP.
   :param features: ``'all'`` (DINO + CLIP, Fig. 5/6 and Table 6),
-    ``'clip_only'`` or ``'dino_only'`` (Appendix Fig./Table B1).
+    ``'clip_only'`` or ``'dino_only'`` (Appendix Figure B1).
   """
   if arch == 'direct':
     return DirectFeedModel(features=features, n_categories=n_categories)

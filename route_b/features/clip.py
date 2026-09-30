@@ -8,10 +8,10 @@ from pathlib import Path
 import numpy as np
 import open_clip
 import torch
+from huggingface_hub import hf_hub_download
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
-from huggingface_hub import hf_hub_download
 
 from route_b.config import paths as get_paths
 from route_b.constants import CLIP_MODEL_NAME, CLIP_PRETRAINED, COCO_SEARCH18_CATEGORIES, NSD_SUBJECTS

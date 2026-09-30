@@ -24,10 +24,11 @@ Notes:
  - N can be "saccades" (fixations-1) or "fixations" (fixations).
  - You can optionally filter to TP-only, correct-only, fixOnTarget-only, split=train/valid.
 
-Usage examples:
- python coco_json_to_csv.py --scanpaths-file cocosearch18.json --output-file cocosearch_model.csv
- python coco_json_to_csv.py --scanpaths-file cocosearch18.json --output-file tp.csv --only-condition TP --only-correct 1
- python coco_json_to_csv.py --scanpaths-file cocosearch18.json --output-file tp_fix.csv --only-condition TP --only-fix-on-target 1
+Direct conversion::
+
+  python -m complexity.preprocessing.convert_scanpaths --scanpaths-file scanpaths.json --output-file trials.csv
+
+Use ``--only-condition present`` and optional ``--only-correct 1`` to select trials.
 """
 
 from __future__ import annotations
@@ -242,7 +243,13 @@ def json_to_csv(
 
 def main() -> None:
   ap = argparse.ArgumentParser(allow_abbrev=False, description='Convert COCO-Search18 JSON array to model-ready CSV.')
-  ap.add_argument('--scanpaths-file', dest='in_json', required=True, type=Path, help='Path to COCO-Search18 JSON (or .json.gz)')
+  ap.add_argument(
+    '--scanpaths-file',
+    dest='in_json',
+    required=True,
+    type=Path,
+    help='Path to COCO-Search18 JSON (or .json.gz)',
+  )
   ap.add_argument('--output-file', dest='out_csv', required=True, type=Path, help='Output CSV path')
 
   ap.add_argument('--movement', choices=['saccades', 'fixations'], default='saccades',

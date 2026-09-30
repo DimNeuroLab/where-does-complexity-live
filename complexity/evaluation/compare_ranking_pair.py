@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from __future__ import annotations
 import argparse
+from __future__ import annotations
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -32,7 +32,7 @@ def compare_two_rankings(file1: Path, file2: Path, output_dir: Path, label1: str
     df1 = pd.read_csv(file1)
     df2 = pd.read_csv(file2)
   except Exception as e:
-    print(f"Error reading files: {e}")
+    print(f'Error reading files: {e}')
     raise ValueError('Ranking comparison could not be completed.')
 
   # Check required columns. Based on previous scripts, we expect 'image' and 'score'
@@ -48,7 +48,7 @@ def compare_two_rankings(file1: Path, file2: Path, output_dir: Path, label1: str
   merged = pd.merge(df1, df2, on='image', suffixes=('_f1', '_f2'), how='inner')
 
   if len(merged) < 2:
-    print(f"Error: Not enough overlapping images ({len(merged)}).")
+    print(f'Error: Not enough overlapping images ({len(merged)}).')
     raise ValueError('Ranking comparison could not be completed.')
 
   # 1. Spearman Rank Correlation
@@ -72,9 +72,9 @@ def compare_two_rankings(file1: Path, file2: Path, output_dir: Path, label1: str
   # 4. RMSE (Root Mean Squared Error of scores)
   rmse = np.sqrt(((merged['score_f1'] - merged['score_f2']) ** 2).mean())
 
-  comparison_name = f"{file1.stem}_vs_{file2.stem}"
+  comparison_name = f'{file1.stem}_vs_{file2.stem}'
 
-  print(f"{comparison_name:<40} | {rho:.3f}    | {tau:.3f}    | {overlap_frac:.2f}     | {rmse:.3f}    | {len(merged)}")
+  print(f'{comparison_name:<40} | {rho:.3f}    | {tau:.3f}    | {overlap_frac:.2f}     | {rmse:.3f}    | {len(merged)}')
 
   # --- Plotting ---
   plt.figure(figsize=(8, 8))
@@ -98,16 +98,16 @@ def compare_two_rankings(file1: Path, file2: Path, output_dir: Path, label1: str
     line_kws={'linestyle': '--', 'linewidth': 1, 'label': 'Trend'}
   )
 
-  plt.title(f"Comparison: {comparison_name}\nrho={rho:.3f}, tau={tau:.3f}, top20={overlap_frac:.2f}, N={len(merged)}")
-  plt.xlabel(f"{label1}\n({file1.name})")
-  plt.ylabel(f"{label2}\n({file2.name})")
+  plt.title(f'Comparison: {comparison_name}\nrho={rho:.3f}, tau={tau:.3f}, top20={overlap_frac:.2f}, N={len(merged)}')
+  plt.xlabel(f'{label1}\n({file1.name})')
+  plt.ylabel(f'{label2}\n({file2.name})')
   plt.grid(True, linestyle='--', alpha=0.5)
   plt.legend()
 
-  plot_path = output_dir / f"comparison_{comparison_name}.png"
+  plot_path = output_dir / f'comparison_{comparison_name}.png'
   plt.savefig(plot_path)
   plt.close()
-  print(f"Plot saved to {plot_path}")
+  print(f'Plot saved to {plot_path}')
 
   # Save summary CSV
   results = [{
@@ -120,9 +120,9 @@ def compare_two_rankings(file1: Path, file2: Path, output_dir: Path, label1: str
     'rmse': rmse,
     'n_images': len(merged)
   }]
-  summary_path = output_dir / f"summary_{comparison_name}.csv"
+  summary_path = output_dir / f'summary_{comparison_name}.csv'
   pd.DataFrame(results).to_csv(summary_path, index=False)
-  print(f"Summary saved to {summary_path}")
+  print(f'Summary saved to {summary_path}')
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(allow_abbrev=False, description='Compare two specific ranking CSV files.')
@@ -150,5 +150,5 @@ if __name__ == '__main__':
 
   args = parser.parse_args()
 
-  print(f"Comparing files:\n  1: {args.file1}\n  2: {args.file2}")
+  print(f'Comparing files:\n  1: {args.file1}\n  2: {args.file2}')
   compare_two_rankings(args.file1, args.file2, args.out_dir, args.label1, args.label2)

@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import argparse
-from collections.abc import Sequence
 import fcntl
 import json
 import os
 import subprocess
 import sys
 import time
+from collections.abc import Sequence
 from pathlib import Path
 
 from route_b.config import configure, paths

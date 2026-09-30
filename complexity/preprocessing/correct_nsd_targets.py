@@ -14,7 +14,7 @@ import pandas as pd
 TARGET_SIZE = (425, 425)
 
 def load_metadata(json_path: Path) -> tuple[dict[str, dict[str, Any]] | None, dict[str, int] | None]:
-  print(f"Loading metadata from {json_path}...")
+  print(f'Loading metadata from {json_path}...')
   try:
     with open(json_path, 'r') as f:
       data = json.load(f)
@@ -30,10 +30,10 @@ def load_metadata(json_path: Path) -> tuple[dict[str, dict[str, Any]] | None, di
         fname = os.path.basename(img['path'])
         img_map[fname] = img
 
-    print(f"Loaded metadata: {len(img_map)} images, {len(cat_map)} categories.")
+    print(f'Loaded metadata: {len(img_map)} images, {len(cat_map)} categories.')
     return img_map, cat_map
   except Exception as e:
-    print(f"Error loading metadata: {e}")
+    print(f'Error loading metadata: {e}')
     return None, None
 
 def get_transformed_bbox(
@@ -79,7 +79,7 @@ def get_transformed_bbox(
     return (x1, y1, clipped_w, clipped_h)
 
   except Exception as e:
-    print(f"Error transforming bbox: {e}")
+    print(f'Error transforming bbox: {e}')
     return bbox
 
 def is_fixation_inside(x: float, y: float, bbox: tuple[float, float, float, float]) -> bool:
@@ -87,7 +87,10 @@ def is_fixation_inside(x: float, y: float, bbox: tuple[float, float, float, floa
   return (bx <= x <= bx + bw) and (by <= y <= by + bh)
 
 def main() -> None:
-  parser = argparse.ArgumentParser(allow_abbrev=False, description='Reproduce the NSD target-box correction and trial filters.')
+  parser = argparse.ArgumentParser(
+    allow_abbrev=False,
+    description='Reproduce the NSD target-box correction and trial filters.',
+  )
   parser.add_argument('--trials-file', dest='csv', type=Path, required=True)
   parser.add_argument('--scanpaths-file', dest='scanpaths', type=Path, required=True)
   parser.add_argument('--metadata-file', dest='metadata', type=Path, required=True)
@@ -95,10 +98,10 @@ def main() -> None:
   args = parser.parse_args()
   args.output.parent.mkdir(parents=True, exist_ok=True)
   # 1. Load Data
-  print(f"Loading {args.csv}...")
+  print(f'Loading {args.csv}...')
   df = pd.read_csv(args.csv)
 
-  print(f"Loading {args.scanpaths}...")
+  print(f'Loading {args.scanpaths}...')
   with open(args.scanpaths, 'r') as f:
     scanpaths_list = json.load(f)
 
@@ -222,17 +225,17 @@ def main() -> None:
   df['bbox_w'] = new_bbox_ws
   df['bbox_h'] = new_bbox_hs
 
-  print(f"Total rows: {len(df)}")
-  print(f"BBox updates: {bbox_updates_count}")
-  print(f"Correctness input flips: {corrections_made_count}")
+  print(f'Total rows: {len(df)}')
+  print(f'BBox updates: {bbox_updates_count}')
+  print(f'Correctness input flips: {corrections_made_count}')
 
   # Filter: Keep only correct=1
   df = df[df['correct'] == 1]
-  print(f"Rows after filtering correct=1: {len(df)}")
+  print(f'Rows after filtering correct=1: {len(df)}')
 
   # Filter: Remove knife
   df = df[df['task'] != 'knife']
-  print(f"Rows after filtering no knife: {len(df)}")
+  print(f'Rows after filtering no knife: {len(df)}')
 
   # Filter: Remove bad bboxes (too large or invalid)
   # Area check
@@ -260,9 +263,9 @@ def main() -> None:
     return True
 
   df = df[df.apply(is_bbox_valid, axis=1)]
-  print(f"Rows after filtering invalid/large bboxes: {len(df)}")
+  print(f'Rows after filtering invalid/large bboxes: {len(df)}')
 
-  print(f"Saving to {args.output}...")
+  print(f'Saving to {args.output}...')
   df.to_csv(args.output, index=False)
   print('Done.')
 

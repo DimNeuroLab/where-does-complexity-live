@@ -73,7 +73,7 @@ class ModelMetadata(TypedDict):
 # Small numeric utilities
 # -------------------------
 
-def logsumexp(a: ArrayLike, axis: int | tuple[int, ...] | None=None) -> np.ndarray:
+def logsumexp(a: ArrayLike, axis: int | tuple[int, ...] | None = None) -> np.ndarray | np.floating:
   if _logsumexp is not None:
     return _logsumexp(a, axis=axis)
   a = np.asarray(a)
@@ -82,7 +82,7 @@ def logsumexp(a: ArrayLike, axis: int | tuple[int, ...] | None=None) -> np.ndarr
   return np.squeeze(out, axis=axis)
 
 
-def log_ndtr(z: ArrayLike) -> np.ndarray:
+def log_ndtr(z: np.ndarray | float) -> np.ndarray:
   # log Phi(z) using erfc; stable-ish, no SciPy required.
   # Phi(z) = 0.5 * erfc(-z/sqrt(2))
   return np.log(0.5 * np.clip(np.vectorize(math.erfc)(-z / np.sqrt(2.0)), 1e-300, 1.0))
@@ -217,11 +217,11 @@ def update_manifest(manifest_path: Path, manifest: dict[str, Any], key: str, **f
 
 def prepare_df(
   df: pd.DataFrame,
-  rt_col: str='RT',
-  n_col: str='N',
-  subj_col: str='subject',
-  img_col: str='image',
-  trial_col: str='trial',
+  rt_col: str = 'RT',
+  n_col: str = 'N',
+  subj_col: str = 'subject',
+  img_col: str = 'image',
+  trial_col: str = 'trial',
 ) -> tuple[pd.DataFrame, ModelMetadata]:
   d = df.copy()
 
@@ -283,9 +283,9 @@ def prepare_df(
 # Random effects helper
 # -------------------------
 
-def _noncentered_re(name: str, dims: str, sigma_prior: float=0.5) -> tuple[pt.TensorVariable, pt.TensorVariable]:
-  sigma = pm.HalfNormal(f"sigma_{name}", sigma_prior)
-  z = pm.Normal(f"z_{name}", 0.0, 1.0, dims=dims)
+def _noncentered_re(name: str, dims: str, sigma_prior: float = 0.5) -> tuple[pt.TensorVariable, pt.TensorVariable]:
+  sigma = pm.HalfNormal(f'sigma_{name}', sigma_prior)
+  z = pm.Normal(f'z_{name}', 0.0, 1.0, dims=dims)
   re = pm.Deterministic(name, z * sigma, dims=dims)
   return re, sigma
 
@@ -538,8 +538,8 @@ def compute_joint_marginal_loglik(
   meta: ModelMetadata,
   rt_family: str,
   xN_mode: str,
-  mcN: int=20,
-  seed: int=42,
+  mcN: int = 20,
+  seed: int = 42,
 ) -> xr.DataArray:
   """
   Computes log p(RT | params) marginalized over N for joint models.
@@ -657,12 +657,12 @@ def compute_joint_marginal_loglik(
 
 def fit(
   model: pm.Model,
-  draws: int=2000,
-  tune: int=2000,
-  chains: int=4,
-  target_accept: float=0.95,
-  seed: int=42,
-  progress: bool=True,
+  draws: int = 2000,
+  tune: int = 2000,
+  chains: int = 4,
+  target_accept: float = 0.95,
+  seed: int = 42,
+  progress: bool = True,
 ) -> az.InferenceData:
   with model:
     idata = pm.sample(
@@ -684,7 +684,7 @@ def ensure_jacobian_logrt_loglik(
   idata: az.InferenceData,
   d: pd.DataFrame,
   rt_ll_var: str,
-  new_name: str='logrt_like_jac',
+  new_name: str = 'logrt_like_jac',
 ) -> az.InferenceData:
   """
   If rt_ll_var is a pointwise log-likelihood on RT, create equivalent log-likelihood on logRT:
@@ -697,7 +697,7 @@ def ensure_jacobian_logrt_loglik(
     return idata
 
   if rt_ll_var not in idata.log_likelihood:
-    raise ValueError(f"Missing {rt_ll_var} in log_likelihood")
+    raise ValueError(f'Missing {rt_ll_var} in log_likelihood')
 
   ll = idata.log_likelihood[rt_ll_var]  # dims: chain, draw, obs
   y = xr.DataArray(d['log_rt'].values.astype(float), dims=('obs',))
@@ -733,7 +733,7 @@ def loo_on_common_logrt(model_name: str, model: pm.Model, idata: az.InferenceDat
     loo = az.loo(idata, var_name=var)
     return loo, var
 
-  raise ValueError(f"{model_name}: no recognizable RT/logRT likelihood in log_likelihood")
+  raise ValueError(f'{model_name}: no recognizable RT/logRT likelihood in log_likelihood')
 
 
 def compare_loo(models: dict[str, tuple[pm.Model, az.InferenceData]], d: pd.DataFrame) -> pd.DataFrame:
@@ -918,7 +918,7 @@ def _ensure_S_first(a: np.ndarray, S: int) -> np.ndarray:
   return a
 
 
-def score_logrt_mixture_normal(y: ArrayLike, mu_SxT: ArrayLike, sigma_S: ArrayLike) -> np.ndarray:
+def score_logrt_mixture_normal(y: np.ndarray, mu_SxT: np.ndarray, sigma_S: np.ndarray) -> tuple[float, float]:
   """
   y: (T,)
   mu_SxT: (S,T)
@@ -935,7 +935,9 @@ def score_logrt_mixture_normal(y: ArrayLike, mu_SxT: ArrayLike, sigma_S: ArrayLi
   return rmse, elpd
 
 
-def score_logrt_mixture_studentt(y: ArrayLike, mu_SxT: ArrayLike, sigma_S: ArrayLike, nu_S: ArrayLike) -> np.ndarray:
+def score_logrt_mixture_studentt(
+  y: np.ndarray, mu_SxT: np.ndarray, sigma_S: np.ndarray, nu_S: np.ndarray
+) -> tuple[float, float]:
   y = y[None, :]
   sigma = sigma_S[:, None]
   nu = nu_S[:, None]
@@ -948,12 +950,12 @@ def score_logrt_mixture_studentt(y: ArrayLike, mu_SxT: ArrayLike, sigma_S: Array
 
 
 def score_logrt_mixture_shifted_lognormal(
-  y_logrt: ArrayLike,
-  rt: ArrayLike,
-  mu_SxT: ArrayLike,
-  sigma_S: ArrayLike,
-  tau_S: ArrayLike,
-) -> np.ndarray:
+  y_logrt: np.ndarray,
+  rt: np.ndarray,
+  mu_SxT: np.ndarray,
+  sigma_S: np.ndarray,
+  tau_S: np.ndarray,
+) -> tuple[float, float]:
   """
   Evaluate log p(logRT) = log p(RT) + logRT, with RT = exp(logRT).
   """
@@ -974,12 +976,12 @@ def score_logrt_mixture_shifted_lognormal(
 
 
 def score_logrt_mixture_exgaussian(
-  y_logrt: ArrayLike,
-  rt: ArrayLike,
-  mu_SxT: ArrayLike,
-  sigma_S: ArrayLike,
-  nu_S: ArrayLike,
-) -> np.ndarray:
+  y_logrt: np.ndarray,
+  rt: np.ndarray,
+  mu_SxT: np.ndarray,
+  sigma_S: np.ndarray,
+  nu_S: np.ndarray,
+) -> tuple[float, float]:
   rt = rt[None, :]
   sigma = sigma_S[:, None]
   nu = nu_S[:, None]
@@ -1251,7 +1253,7 @@ def build_model_selection_table(cv_results: dict[str, dict[str, float]]) -> pd.D
   df = pd.DataFrame(rows)
 
   # rank helpers (0..1 where 1 is best)
-  def rank01(s: pd.Series, higher_better: bool=True) -> pd.Series:
+  def rank01(s: pd.Series, higher_better: bool = True) -> pd.Series:
     s = s.copy()
     # handle NaNs by putting them worst
     nan_mask = ~np.isfinite(s.values)

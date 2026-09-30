@@ -158,6 +158,38 @@ class PublicPipelineTests(unittest.TestCase):
         self.assertEqual(main([command, '--help']), 0)
         entry.assert_called_once_with(['--help'])
 
+  def test_variance_utility_accepts_configuration_before_resolving_default_checkpoint(self) -> None:
+    from route_b.evaluation import variance
+    with tempfile.TemporaryDirectory() as directory:
+      root = Path(directory)
+      filename = root / 'config.json'
+      filename.write_text(json.dumps({'output_dir': 'run', 'inputs': {'nsd_root': 'nsd'}}))
+      checkpoint = root / 'run/checkpoints/complexity/visual_1.pt'
+      checkpoint.parent.mkdir(parents=True)
+      checkpoint.touch()
+      with patch.object(config, '_paths', None), \
+           patch.object(sys, 'argv', ['variance', '--config', str(filename), '--device', 'cpu']), \
+           patch.object(variance, 'predict_oof_pair_scores', return_value={}) as predict, \
+           patch.object(variance, 'decompose_variance', return_value=(1., .25, .75, 2)):
+        variance.main()
+        self.assertEqual(predict.call_args.args[0], checkpoint)
+
+  def test_run_summary_uses_current_results_only(self) -> None:
+    from route_b.evaluation.reproduction import report
+    with tempfile.TemporaryDirectory() as directory:
+      root = Path(directory)
+      current = root / 'results/visual_1'
+      old = root / 'replay/visual_1/original'
+      for path, value in [(current, .6), (old, .9)]:
+        path.mkdir(parents=True)
+        (path / 'metrics.json').write_text(json.dumps({'pooled': {
+          'pearson': value, 'spearman': value, 'pearson_residual': value, 'mae': .2}}))
+      report(root)
+      summary = json.loads((root / 'summary.json').read_text())
+      self.assertEqual(summary, {'1': {'pooled': {
+        'pearson': .6, 'spearman': .6, 'pearson_residual': .6, 'mae': .2}}})
+      self.assertTrue((root / 'summary.png').is_file())
+
 
 if __name__ == '__main__':
   unittest.main()

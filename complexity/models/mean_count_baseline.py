@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Compute baseline difficulty ranking by averaging N (number of fixations) per image.
+Compute baseline difficulty ranking by averaging N (configured eye-movement count) per image.
 Produces a CSV compatible with the visualization scripts.
 """
 
@@ -89,7 +89,7 @@ def ranking_stability_point_estimates(fold_rankings: list[pd.Series], topk: int 
     common_images &= set(r.index)
 
   common_images = sorted(list(common_images))
-  print(f"Computing stability on {len(common_images)} common images across {len(fold_rankings)} folds.")
+  print(f'Computing stability on {len(common_images)} common images across {len(fold_rankings)} folds.')
 
   means = [r.loc[common_images].values for r in fold_rankings]
   # Ranks (descending score = rank 0)
@@ -132,17 +132,17 @@ def ranking_stability_point_estimates(fold_rankings: list[pd.Series], topk: int 
 def compute_ranking(
   csv_path: Path | str,
   output_dir: Path | str,
-  model_name: str='mean_N',
-  do_cv: bool=True,
-  cv_splits: int=5,
-  seed: int=42,
+  model_name: str = 'mean_N',
+  do_cv: bool = True,
+  cv_splits: int = 5,
+  seed: int = 42,
 ) -> None:
   csv_path = Path(csv_path)
   if not csv_path.exists():
-    print(f"Error: CSV file {csv_path} not found.")
+    print(f'Error: CSV file {csv_path} not found.')
     return
 
-  print(f"Loading {csv_path}...")
+  print(f'Loading {csv_path}...')
   df = pd.read_csv(csv_path)
 
   # Required columns
@@ -161,7 +161,7 @@ def compute_ranking(
   initial_len = len(df)
   df = df[df['N'] > 0]
   if len(df) < initial_len:
-    print(f"Filtered {initial_len - len(df)} records with N <= 0")
+    print(f'Filtered {initial_len - len(df)} records with N <= 0')
 
   print(f"Computing average N for {df['image'].nunique()} images...")
 
@@ -173,7 +173,7 @@ def compute_ranking(
   # CV Stability
   # -------------------------
   if do_cv:
-    print(f"\nRunning {cv_splits}-fold CV for stability analysis...")
+    print(f'\nRunning {cv_splits}-fold CV for stability analysis...')
     # Prepare indices for CV
     d_cv = df.copy()
 
@@ -200,19 +200,19 @@ def compute_ranking(
       # Compute ranking on training data
       r = d_tr.groupby('image')['N'].mean()
       fold_rankings.append(r)
-      print(f"  Fold {i+1}: {len(d_tr)} trials, {len(r)} images scored")
+      print(f'  Fold {i+1}: {len(d_tr)} trials, {len(r)} images scored')
 
     stability_metrics = ranking_stability_point_estimates(fold_rankings)
     print('\nStability Metrics:')
     for k, v in stability_metrics.items():
-      print(f"  {k}: {v:.4f}")
+      print(f'  {k}: {v:.4f}')
 
     # Save stability metrics
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    stab_path = output_dir / f"stability_{model_name}.csv"
+    stab_path = output_dir / f'stability_{model_name}.csv'
     pd.DataFrame([stability_metrics]).to_csv(stab_path, index=False)
-    print(f"Saved stability metrics to {stab_path}")
+    print(f'Saved stability metrics to {stab_path}')
 
   # -------------------------
   # Final Output
@@ -237,11 +237,11 @@ def compute_ranking(
   output_dir = Path(output_dir)
   output_dir.mkdir(parents=True, exist_ok=True)
 
-  out_filename = f"full_ranking_{model_name}.csv"
+  out_filename = f'full_ranking_{model_name}.csv'
   out_path = output_dir / out_filename
 
   out_df.to_csv(out_path, index=False)
-  print(f"Saved ranking to {out_path}")
+  print(f'Saved ranking to {out_path}')
   print('\nTop 5 hardest images:')
   print(out_df.head())
 

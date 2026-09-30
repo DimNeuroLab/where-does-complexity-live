@@ -40,7 +40,7 @@ from route_b.data.datasets import (
 )
 from route_b.models.complexity import BrainComplexityModel, HeteroscedasticLoss
 from route_b.runtime import EpochRecovery, atomic_checkpoint, check_budget
-from route_b.types import FoldResult, Sample, TensorMap
+from route_b.types import FoldResult, Record, Sample, TensorMap
 
 
 def set_seed(seed: int) -> None:

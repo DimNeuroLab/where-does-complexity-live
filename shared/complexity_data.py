@@ -22,7 +22,7 @@ CATEGORY_TO_IDX: dict[str, int] = {category: index for index, category in enumer
 _IMAGE_FILENAME_RE = re.compile(r'(?:train|test)-(\d+)_nsd-(\d+)(?:_.+)?\.png')
 
 
-class ComplexityRecord(dict):
+class ComplexityRecord(dict[str, str | int | float]):
   """A single (image, target category, complexity score) record.
 
   Kept as a plain ``dict`` subclass (keys: ``train_idx``, ``nsd_id``,

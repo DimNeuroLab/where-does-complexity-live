@@ -53,7 +53,7 @@ class ModelMetadata(TypedDict):
 # -------------------------
 
 
-def logsumexp(a: ArrayLike, axis: int | tuple[int, ...] | None=None) -> np.ndarray:
+def logsumexp(a: ArrayLike, axis: int | tuple[int, ...] | None = None) -> np.ndarray | np.floating:
   if _logsumexp is not None:
     return _logsumexp(a, axis=axis)
   a = np.asarray(a)
@@ -61,7 +61,7 @@ def logsumexp(a: ArrayLike, axis: int | tuple[int, ...] | None=None) -> np.ndarr
   out = amax + np.log(np.sum(np.exp(a - amax), axis=axis, keepdims=True))
   return np.squeeze(out, axis=axis)
 
-def log_ndtr(z: ArrayLike) -> np.ndarray:
+def log_ndtr(z: np.ndarray | float) -> np.ndarray:
   return np.log(0.5 * np.clip(np.vectorize(math.erfc)(-z / np.sqrt(2.0)), 1e-300, 1.0))
 
 def exgaussian_logpdf(x: ArrayLike, mu: ArrayLike, sigma: ArrayLike, nu: ArrayLike) -> np.ndarray:
@@ -132,10 +132,10 @@ def update_manifest(manifest_path: Path, manifest: dict[str, Any], key: str, **f
 
 def prepare_df(
   df: pd.DataFrame,
-  n_col: str='N',
-  subj_col: str='subject',
-  img_col: str='image',
-  trial_col: str='trial',
+  n_col: str = 'N',
+  subj_col: str = 'subject',
+  img_col: str = 'image',
+  trial_col: str = 'trial',
 ) -> tuple[pd.DataFrame, ModelMetadata]:
   d = df.copy()
 
@@ -176,9 +176,9 @@ def prepare_df(
 # Random effects helper
 # -------------------------
 
-def _noncentered_re(name: str, dims: str, sigma_prior: float=0.5) -> tuple[pt.TensorVariable, pt.TensorVariable]:
-  sigma = pm.HalfNormal(f"sigma_{name}", sigma_prior)
-  z = pm.Normal(f"z_{name}", 0.0, 1.0, dims=dims)
+def _noncentered_re(name: str, dims: str, sigma_prior: float = 0.5) -> tuple[pt.TensorVariable, pt.TensorVariable]:
+  sigma = pm.HalfNormal(f'sigma_{name}', sigma_prior)
+  z = pm.Normal(f'z_{name}', 0.0, 1.0, dims=dims)
   re = pm.Deterministic(name, z * sigma, dims=dims)
   return re, sigma
 
@@ -299,12 +299,12 @@ def build_M4_n_exgaussian(d: pd.DataFrame, meta: ModelMetadata) -> pm.Model:
 
 def fit(
   model: pm.Model,
-  draws: int=2000,
-  tune: int=2000,
-  chains: int=4,
-  target_accept: float=0.95,
-  seed: int=42,
-  progress: bool=True,
+  draws: int = 2000,
+  tune: int = 2000,
+  chains: int = 4,
+  target_accept: float = 0.95,
+  seed: int = 42,
+  progress: bool = True,
 ) -> az.InferenceData:
   with model:
     idata = pm.sample(
@@ -325,7 +325,7 @@ def ensure_jacobian_logn_loglik(
   idata: az.InferenceData,
   d: pd.DataFrame,
   n_ll_var: str,
-  new_name: str='logn_like_jac',
+  new_name: str = 'logn_like_jac',
 ) -> az.InferenceData:
   """
   If n_ll_var is a pointwise log-likelihood on N, create equivalent log-likelihood on logN:
@@ -360,7 +360,7 @@ def loo_on_common_logn(model_name: str, model: pm.Model, idata: az.InferenceData
     idata = ensure_jacobian_logn_loglik(idata, d, 'n_like', new_name='logn_like_jac')
     return az.loo(idata, var_name='logn_like_jac'), 'logn_like_jac'
 
-  raise ValueError(f"{model_name}: no recognizable N/logN likelihood")
+  raise ValueError(f'{model_name}: no recognizable N/logN likelihood')
 
 def compare_loo(models: dict[str, tuple[pm.Model, az.InferenceData]], d: pd.DataFrame) -> pd.DataFrame:
   rows = []
@@ -501,7 +501,7 @@ def _ensure_S_first(a: np.ndarray, S: int) -> np.ndarray:
     return np.moveaxis(a, -1, 0)
   return a
 
-def score_logn_mixture_normal(y: ArrayLike, mu_SxT: ArrayLike, sigma_S: ArrayLike) -> np.ndarray:
+def score_logn_mixture_normal(y: np.ndarray, mu_SxT: np.ndarray, sigma_S: np.ndarray) -> tuple[float, float]:
   y = y[None, :]
   sigma = sigma_S[:, None]
   logpdf = normal_logpdf(y, mu_SxT, sigma)
@@ -511,7 +511,9 @@ def score_logn_mixture_normal(y: ArrayLike, mu_SxT: ArrayLike, sigma_S: ArrayLik
   rmse = float(np.sqrt(np.mean((y.squeeze(0) - yhat) ** 2)))
   return rmse, elpd
 
-def score_logn_mixture_studentt(y: ArrayLike, mu_SxT: ArrayLike, sigma_S: ArrayLike, nu_S: ArrayLike) -> np.ndarray:
+def score_logn_mixture_studentt(
+  y: np.ndarray, mu_SxT: np.ndarray, sigma_S: np.ndarray, nu_S: np.ndarray
+) -> tuple[float, float]:
   y = y[None, :]
   sigma = sigma_S[:, None]
   nu = nu_S[:, None]
@@ -523,12 +525,12 @@ def score_logn_mixture_studentt(y: ArrayLike, mu_SxT: ArrayLike, sigma_S: ArrayL
   return rmse, elpd
 
 def score_logn_mixture_shifted_lognormal(
-  y_logn: ArrayLike,
-  n_val: ArrayLike,
-  mu_SxT: ArrayLike,
-  sigma_S: ArrayLike,
-  tau_S: ArrayLike,
-) -> np.ndarray:
+  y_logn: np.ndarray,
+  n_val: np.ndarray,
+  mu_SxT: np.ndarray,
+  sigma_S: np.ndarray,
+  tau_S: np.ndarray,
+) -> tuple[float, float]:
   n_val = n_val[None, :]
   mu = mu_SxT
   sigma = sigma_S[:, None]
@@ -543,12 +545,12 @@ def score_logn_mixture_shifted_lognormal(
   return rmse, elpd
 
 def score_logn_mixture_exgaussian(
-  y_logn: ArrayLike,
-  n_val: ArrayLike,
-  mu_SxT: ArrayLike,
-  sigma_S: ArrayLike,
-  nu_S: ArrayLike,
-) -> np.ndarray:
+  y_logn: np.ndarray,
+  n_val: np.ndarray,
+  mu_SxT: np.ndarray,
+  sigma_S: np.ndarray,
+  nu_S: np.ndarray,
+) -> tuple[float, float]:
   n_val = n_val[None, :]
   sigma = sigma_S[:, None]
   nu = nu_S[:, None]
@@ -695,7 +697,7 @@ def build_model_selection_table(cv_results: dict[str, dict[str, float]]) -> pd.D
     ))
   df = pd.DataFrame(rows)
 
-  def rank01(s: pd.Series, higher_better: bool=True) -> pd.Series:
+  def rank01(s: pd.Series, higher_better: bool = True) -> pd.Series:
     s = s.copy()
     nan_mask = ~np.isfinite(s.values)
     if nan_mask.any():
