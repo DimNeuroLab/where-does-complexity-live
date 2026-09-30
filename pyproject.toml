@@ -74,6 +74,9 @@ route-a-engineered = 'route_a.engineered.__main__:main'
 route-a-embedding = 'route_a.embedding.__main__:main'
 route-b = 'route_b.__main__:main'
 
+[tool.setuptools]
+include-package-data = false
+
 [tool.setuptools.packages.find]
 include = ['complexity*', 'route_a*', 'route_b*', 'shared*']
 exclude = ['complexity.tests*', 'route_a.engineered.tests*', 'route_a.embedding.tests*', 'route_b.tests*']
