@@ -57,7 +57,7 @@ paper artifacts from fresh training reproduction.
 Route B now has a standalone public workflow. See its
 [data and model sources](docs/route_b_data.md), [artifact guide](docs/route_b_artifacts.md),
 and [completed reproduction results](docs/route_b_results.md).
-The other components in the layout below remain planned.
+The engineered and embedding Route A implementations are available in their component folders.
 
 ## Scientific workflow
 
@@ -172,3 +172,21 @@ A public paper link and machine-readable citation will be added when available.
 The [engineered Route A package](route_a/engineered/README.md) provides training
 and prediction for image and search target pairs. Its guide covers installation
 and usage; [data setup](docs/data_setup.md) covers the required inputs.
+
+## Install the integrated package
+
+Use Python 3.12 for the documented environments. The package requires Python 3.11 or newer.
+Install the component dependencies before installing the local package:
+
+```bash
+# Engineered Route A, including pretrained feature extraction.
+python -m pip install -e '.[engineered,dev]'
+# Embedding Route A.
+python -m pip install -e '.[embedding]'
+```
+
+For Complexity and Route B, use their separate dependency specifications and environments
+as described in their READMEs, then run `python -m pip install --no-deps -e .` from the repository root.
+The distribution includes all four source packages and their runtime CSV/configuration resources.
+The contributed commands remain `complexity-route-a` and `complexity-route-a-embedding`;
+Complexity and Route B retain their documented `python -m` commands.
