@@ -7,7 +7,7 @@ name = 'where-does-complexity-live'
 version = '0.1.0'
 description = 'Code for target-conditioned visual complexity readouts'
 readme = 'README.md'
-requires-python = '>=3.10'
+requires-python = '>=3.11'
 dependencies = [
   'joblib>=1.3',
   'numpy>=1.26',
@@ -40,4 +40,13 @@ complexity-route-a = 'route_a.engineered.__main__:main'
 complexity-route-a-embedding = 'route_a.embedding.__main__:main'
 
 [tool.setuptools.packages.find]
-include = ['route_a*', 'shared*']
+include = ['complexity*', 'route_a*', 'route_b*', 'shared*']
+exclude = ['complexity.tests*', 'complexity.reference*', 'route_b.tests*', 'route_b.reference*']
+namespaces = true
+
+[tool.setuptools.package-data]
+complexity = ['config.example.json', 'source_manifest.json', 'reference/*.csv']
+'complexity.generation' = ['source_manifest.json', 'requirements*.txt']
+route_b = ['requirements.lock.txt', 'reference/*.csv', 'reference/*.json']
+'route_b.experiments' = ['*.json', '*.example']
+'route_b.development' = ['*.json']
