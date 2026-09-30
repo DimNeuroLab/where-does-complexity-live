@@ -81,7 +81,7 @@ def read_config(filename: Path) -> RunConfig:
   if '$' in config['output']:
     raise ValueError('Define the output environment variable or supply an explicit path')
   config['inputs'].setdefault('features', str(Path(config['output']) / 'features'))
-  config['inputs'].setdefault('ranking', str(Path(__file__).resolve().parents[1] / 'complexity/reference/nsd_m2_ranking.csv'))
+  config['inputs'].setdefault('ranking', str(Path(__file__).resolve().parents[1] / 'complexity/nsd_m2_ranking.csv'))
   for key, value in config['inputs'].items():
     if '$' in os.path.expandvars(value):
       raise ValueError(f'Undefined environment variable in input {key}: {value}')

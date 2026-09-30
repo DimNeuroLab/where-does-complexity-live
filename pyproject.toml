@@ -45,7 +45,7 @@ exclude = ['complexity.tests*', 'complexity.reference*', 'route_b.tests*', 'rout
 namespaces = true
 
 [tool.setuptools.package-data]
-complexity = ['config.example.json', 'source_manifest.json', 'reference/*.csv']
+complexity = ['nsd_m2_ranking.csv', 'config.example.json', 'source_manifest.json', 'reference/*.csv']
 'complexity.generation' = ['source_manifest.json', 'requirements*.txt']
 route_b = ['requirements.lock.txt', 'reference/*.csv', 'reference/*.json']
 'route_b.experiments' = ['*.json', '*.example']

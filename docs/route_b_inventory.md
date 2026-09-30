@@ -44,7 +44,7 @@ artifact, its exact training inputs, and a source revision.
 ## Data lineage
 
 `preds/full_ranking_M2_n_studentT.csv` is byte-identical to the publication
-repository's `complexity/reference/nsd_m2_ranking.csv`. SHA256:
+repository's `complexity/nsd_m2_ranking.csv`. SHA256:
 
 ```text
 2101a2143b00da45625afeaeda08880c70761f825efb0a7c17769624c0a0e6fb

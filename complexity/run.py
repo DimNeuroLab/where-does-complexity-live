@@ -194,7 +194,7 @@ def main() -> None:
     ]
     run('evaluation.verify_ranking', [
       '--ranking', str(output / 'rankings/nsd/full_ranking_M2_n_studentT.csv'),
-      '--reference', str(ROOT / 'complexity/reference/nsd_m2_ranking.csv'),
+      '--reference', str(ROOT / 'complexity/nsd_m2_ranking.csv'),
       '--output', str(output / 'verification.json'),
       '--mode', 'export' if args.posterior else 'refit',
       *diagnostic_args,
