@@ -76,12 +76,15 @@ route-b = 'route_b.__main__:main'
 
 [tool.setuptools.packages.find]
 include = ['complexity*', 'route_a*', 'route_b*', 'shared*']
-exclude = ['complexity.tests*', 'complexity.reference*', 'route_b.tests*', 'route_b.reference*']
+exclude = ['complexity.tests*', 'route_a.engineered.tests*', 'route_a.embedding.tests*', 'route_b.tests*']
 namespaces = true
 
 [tool.setuptools.package-data]
-complexity = ['nsd_m2_ranking.csv', 'config.example.json', 'source_manifest.json', 'reference/*.csv']
-'complexity.generation' = ['source_manifest.json', 'requirements*.txt']
-route_b = ['requirements.lock.txt', 'reference/*.csv', 'reference/*.json']
-'route_b.experiments' = ['*.json', '*.example']
-'route_b.development' = ['*.json']
+complexity = ['README.md', '*.csv', 'config.example.json', 'requirements.lock.txt']
+'complexity.generation' = ['requirements.lock.txt']
+route_a = ['README.md']
+'route_a.engineered' = ['README.md', 'requirements.lock.txt']
+'route_a.embedding' = ['README.md', 'requirements.lock.txt']
+route_b = ['README.md', 'requirements.lock.txt', 'paper_*.csv']
+'route_b.experiments' = ['paper.example.json']
+shared = ['README.md']

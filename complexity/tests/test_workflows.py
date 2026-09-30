@@ -21,7 +21,7 @@ class WorkflowTests(unittest.TestCase):
   def invoke(self, root: Path, profile: str, stages: list[str] | None = None, **config: Any) -> list[Any]:
     filename = root / 'config.json'
     filename.write_text(json.dumps({'output_dir': str(root / 'output'), **config}))
-    argv = ['complexity.run', '--config', str(filename), '--profile', profile]
+    argv = ['complexity run', '--config', str(filename), '--profile', profile]
     if stages:
       argv += ['--stages', *stages]
     with patch.object(sys, 'argv', argv), patch.object(run, 'execute') as execute:
@@ -48,7 +48,9 @@ class WorkflowTests(unittest.TestCase):
     with tempfile.TemporaryDirectory() as directory:
       root = Path(directory)
       calls = self.invoke(root, 'all', ['prepare'], inputs={
-        key: str(root / key) for key in ['coco_scanpaths_file', 'human_scanpaths_file', 'nsd_scanpaths_file', 'nsd_metadata_file']
+        key: str(root / key) for key in [
+          'coco_scanpaths_file', 'human_scanpaths_file', 'nsd_scanpaths_file', 'nsd_metadata_file',
+        ]
       })
       conversions = [call.args[1] for call in calls if call.args[0].endswith('.convert_scanpaths')]
       self.assertEqual(len(conversions), 3)
@@ -104,7 +106,7 @@ class WorkflowTests(unittest.TestCase):
       self.assertEqual([row['correct'] for row in rows], ['0', '1', ''])
 
   def test_paper_reference_routes_rt_tables_to_unfiltered_suite(self) -> None:
-    reference = Path(run.__file__).parent / 'reference/paper_tables.csv'
+    reference = Path(run.__file__).parent / 'paper_tables.csv'
     with tempfile.TemporaryDirectory() as directory:
       rows = compare(Path(directory), reference, ['1', 'A1'])
       self.assertEqual(len(rows), 117)
