@@ -2,6 +2,11 @@
 
 Inventory date: 2026-09-09.
 
+The full rerun is now complete. For the current 14 September findings, repaired
+joint RT scoring omission, and remaining reproduction limits, see the
+[discrepancy investigation](complexity_discrepancies.md). The inventory below
+preserves the original provenance investigation and its dated decisions.
+
 This inventory maps the supplied IJCV manuscript to the existing
 `projects/complexity/` research workspace. Paths below are relative to that
 workspace unless a different project is named. They describe the original source
@@ -302,8 +307,12 @@ the provenance investigation; setup tasks in that list are not new approval gate
    generator and saved outputs establish the upstream location. Prepare a working
    environment, fix execution defects, and record an explicit generation recipe.
    Four GPUs are now confirmed, and `--force` was recalled by the author. The
-   current adapter still needs the original four-worker partitioning for a
-   matching full generation run. Prepared images and bounding boxes are available.
+   adapter now implements the recovered four-worker NSD partitioning and a
+   separate single-worker float32 COCO recipe. Both full generation runs completed.
+   Controlled original-versus-adapter checks match exactly in the new environment;
+   fresh NSD outputs still differ from historical scanpaths. See the
+   [completed investigation](complexity_discrepancies.md). Prepared images and
+   bounding boxes are available.
 
 2. **Fitting environment and remaining sampling settings.** Build a reproducible
    environment around the confirmed PyMC 5.27.0 and ArviZ 0.23.0 versions, including

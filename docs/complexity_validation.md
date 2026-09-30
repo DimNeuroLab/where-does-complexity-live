@@ -1,5 +1,16 @@
 # Complexity pipeline validation
 
+For the subsequent RT provenance findings, successful-trial protocol, and corrected
+CV investigation, see the [revised comparison](complexity_corrected_protocol.md).
+The reproduction results below describe the earlier historical run.
+
+For the completed image-to-ranking run and the 14 September investigation, see
+[full reproduction](complexity_full_reproduction.md) and
+[discrepancies](complexity_discrepancies.md). The record below describes the
+9 September validation from saved scanpaths. Its exact NSD result remains valid.
+The later investigation identified and restored a missing joint RT marginal-LOO
+preparation step in the shared CLI runner; original model functions were unchanged.
+
 Validated on 9 September 2026. The full NSD M2 refit exported a CSV that is
 **byte-identical to the preserved Route B ranking**. The source datasets and
 historical research artifacts were read without modification.
