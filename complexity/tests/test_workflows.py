@@ -30,7 +30,7 @@ class WorkflowTests(unittest.TestCase):
 
   def test_rt_tables_dispatch_only_the_unfiltered_suite(self) -> None:
     with tempfile.TemporaryDirectory() as directory:
-      root = Path(directory)
+      root = Path(directory).resolve()
       calls = self.invoke(root, 'coco-rt-tables', inputs={
         'coco_scanpaths_file': str(root / 'scanpaths.json'), 'human_scanpaths_file': '${UNUSED_HUMAN}',
         'nsd_metadata_file': '${UNUSED_NSD}',
@@ -46,7 +46,7 @@ class WorkflowTests(unittest.TestCase):
 
   def test_existing_all_profile_preserves_human_and_successful_inputs(self) -> None:
     with tempfile.TemporaryDirectory() as directory:
-      root = Path(directory)
+      root = Path(directory).resolve()
       calls = self.invoke(root, 'all', ['prepare'], inputs={
         key: str(root / key) for key in [
           'coco_scanpaths_file', 'human_scanpaths_file', 'nsd_scanpaths_file', 'nsd_metadata_file',
@@ -70,7 +70,7 @@ class WorkflowTests(unittest.TestCase):
     for stages, inputs in [(['variance'], {}), (['prepare'], {}),
                            (['prepare'], {'coco_scanpaths_file': '${MISSING_SCANPATHS}'})]:
       with self.subTest(stages=stages, inputs=inputs), tempfile.TemporaryDirectory() as directory:
-        root = Path(directory)
+        root = Path(directory).resolve()
         with self.assertRaises(SystemExit) as error:
           self.invoke(root, 'coco-rt-tables', stages, inputs=inputs)
         self.assertEqual(error.exception.code, 2)
@@ -78,7 +78,7 @@ class WorkflowTests(unittest.TestCase):
 
   def test_generation_uses_coco_configuration_for_rt_tables(self) -> None:
     with tempfile.TemporaryDirectory() as directory:
-      root = Path(directory)
+      root = Path(directory).resolve()
       calls = self.invoke(root, 'coco-rt-tables', ['generate', 'prepare'],
         inputs={'coco_images_dir': str(root / 'images'), 'coco_bboxes_file': str(root / 'boxes.json')},
         generation={'scandiff_root': str(root / 'scandiff'), 'python_file': sys.executable,
@@ -89,7 +89,7 @@ class WorkflowTests(unittest.TestCase):
 
   def test_rt_preparation_keeps_failed_and_unknown_target_present_trials(self) -> None:
     with tempfile.TemporaryDirectory() as directory:
-      root = Path(directory)
+      root = Path(directory).resolve()
       base = {'subject': 1, 'name': 'image.png', 'task': 'bottle', 'condition': 'present',
               'X': [0, 1], 'Y': [0, 1], 'T': [100, 100], 'RT': 200, 'length': 2, 'bbox': [0, 0, 2, 2]}
       source = root / 'scanpaths.json'
@@ -117,7 +117,7 @@ class WorkflowTests(unittest.TestCase):
 
   def test_configuration_paths_are_independent_of_launch_directory(self) -> None:
     with tempfile.TemporaryDirectory() as directory:
-      root = Path(directory)
+      root = Path(directory).resolve()
       settings = root / 'settings'
       settings.mkdir()
       (settings / 'trials.json').write_text('[{"name": "image.png", "subject": 1, "condition": "present", '
