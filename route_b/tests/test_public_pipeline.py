@@ -23,7 +23,7 @@ from route_b.provenance import fingerprints, verify_files
 class PublicPipelineTests(unittest.TestCase):
   def test_fresh_configuration_needs_no_legacy_artifacts(self) -> None:
     with tempfile.TemporaryDirectory() as directory:
-      root = Path(directory)
+      root = Path(directory).resolve()
       value = {'inputs': {'nsd_root': str(root / 'nsd')}, 'output_dir': str(root / 'run'), 'head': {'cv_folds': 5}}
       filename = root / 'config.json'
       filename.write_text(json.dumps(value))
@@ -39,7 +39,7 @@ class PublicPipelineTests(unittest.TestCase):
 
   def test_external_pca_models_do_not_redirect_generated_observations(self) -> None:
     with tempfile.TemporaryDirectory() as directory:
-      root = Path(directory)
+      root = Path(directory).resolve()
       value = {'inputs': {'nsd_root': str(root / 'nsd'), 'pca_models_dir': str(root / 'bundle/pca')},
                'output_dir': str(root / 'run'), 'head': {'cv_folds': 5}}
       filename = root / 'config.json'
@@ -51,7 +51,7 @@ class PublicPipelineTests(unittest.TestCase):
 
   def test_evaluation_samples_match_training_without_loading_image_features(self) -> None:
     with tempfile.TemporaryDirectory() as directory:
-      root = Path(directory)
+      root = Path(directory).resolve()
       rng = np.random.RandomState(23)
       np.save(root / 'subj01_pca_fmri.npy', rng.normal(size=(3, 6)).astype(np.float32))
       np.save(root / 'subj01_dino_layers.npy', rng.normal(size=(3, 24, 2)).astype(np.float32))
@@ -86,7 +86,7 @@ class PublicPipelineTests(unittest.TestCase):
   def test_preparation_cannot_overwrite_external_pca(self) -> None:
     from route_b.run import execute
     with tempfile.TemporaryDirectory() as directory:
-      root = Path(directory)
+      root = Path(directory).resolve()
       value = {'inputs': {'nsd_root': str(root / 'nsd'), 'pca_dir': str(root / 'preserved')},
                'output_dir': str(root / 'run'), 'head': {'cv_folds': 5}}
       filename = root / 'config.json'
@@ -97,7 +97,7 @@ class PublicPipelineTests(unittest.TestCase):
 
   def test_configuration_and_resume_are_independent_of_launch_directory(self) -> None:
     with tempfile.TemporaryDirectory() as directory:
-      root = Path(directory)
+      root = Path(directory).resolve()
       settings = root / 'settings'
       settings.mkdir()
       filename = settings / 'run.json'
@@ -122,7 +122,7 @@ class PublicPipelineTests(unittest.TestCase):
 
   def test_all_configured_paths_expand_beside_the_configuration(self) -> None:
     with tempfile.TemporaryDirectory() as directory:
-      root = Path(directory)
+      root = Path(directory).resolve()
       filename = root / 'settings.json'
       filename.write_text(json.dumps({'output_dir': 'run', 'inputs': {
         'nsd_root': '${TEST_NSD_ROOT}', 'features_dir': 'features', 'pca_dir': 'pca',
@@ -143,7 +143,7 @@ class PublicPipelineTests(unittest.TestCase):
   def test_text_only_inputs_do_not_access_nsd_or_ranking(self) -> None:
     from route_b.provenance import input_files
     with tempfile.TemporaryDirectory() as directory:
-      root = Path(directory)
+      root = Path(directory).resolve()
       filename = root / 'config.json'
       filename.write_text(json.dumps({'output_dir': 'run'}))
       with patch.object(config, '_paths', None):
@@ -161,7 +161,7 @@ class PublicPipelineTests(unittest.TestCase):
   def test_variance_utility_accepts_configuration_before_resolving_default_checkpoint(self) -> None:
     from route_b.evaluation import variance
     with tempfile.TemporaryDirectory() as directory:
-      root = Path(directory)
+      root = Path(directory).resolve()
       filename = root / 'config.json'
       filename.write_text(json.dumps({'output_dir': 'run', 'inputs': {'nsd_root': 'nsd'}}))
       checkpoint = root / 'run/checkpoints/complexity/visual_1.pt'
@@ -177,7 +177,7 @@ class PublicPipelineTests(unittest.TestCase):
   def test_run_summary_uses_current_results_only(self) -> None:
     from route_b.evaluation.reproduction import report
     with tempfile.TemporaryDirectory() as directory:
-      root = Path(directory)
+      root = Path(directory).resolve()
       current = root / 'results/visual_1'
       old = root / 'replay/visual_1/original'
       for path, value in [(current, .6), (old, .9)]:
