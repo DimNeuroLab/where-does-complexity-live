@@ -1,5 +1,7 @@
 """Checks for explicit RT-table routing and stage-specific inputs."""
 
+from __future__ import annotations
+
 import csv
 import json
 import subprocess
@@ -7,6 +9,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 from complexity import run
@@ -14,7 +17,7 @@ from complexity.evaluation.compare_paper_tables import compare
 
 
 class WorkflowTests(unittest.TestCase):
-  def invoke(self, root: Path, profile: str, stages: list[str] | None = None, **config):
+  def invoke(self, root: Path, profile: str, stages: list[str] | None = None, **config: Any) -> list[Any]:
     filename = root / 'config.json'
     filename.write_text(json.dumps({'output_dir': str(root / 'output'), **config}))
     argv = ['complexity.run', '--config', str(filename), '--profile', profile]
