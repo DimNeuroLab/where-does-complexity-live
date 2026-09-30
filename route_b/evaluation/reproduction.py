@@ -1,4 +1,4 @@
-"""Paired checkpoint replay and reports for original-behavior reproduction."""
+"""Identity-bearing checkpoint predictions, metrics and current-run summaries."""
 
 from __future__ import annotations
 
@@ -7,7 +7,6 @@ import importlib
 import json
 import os
 from pathlib import Path
-from types import ModuleType
 
 import numpy as np
 import torch
@@ -20,21 +19,11 @@ from route_b.runtime import atomic_json, check_budget
 from route_b.types import Array, Metrics
 
 
-REFERENCE_HEADS = {
-  1.0: 'multisubj_best.pt', 0.0: 'routeb_fmri_only_pretrain_aux0_frozen.pt',
-  0.25: 'routeb_mixed_v0p25_f0p75_aux0_frozen.pt', 0.5: 'routeb_mixed_v0p5_f0p5_aux0_frozen.pt',
-  0.75: 'routeb_mixed_v0p75_f0p25_aux0_frozen.pt',
-}
+def predict_checkpoint(checkpoint: Path, directory: Path) -> dict[str, Array]:
+  """Export native checkpoint predictions with the historical observation order."""
+  from route_b.data import datasets as data
+  from route_b.evaluation import metrics as backend
 
-
-def predict_checkpoint(checkpoint: Path, directory: Path, original: bool = False) -> dict[str, Array]:
-  """Execute the original evaluation helpers or their port on exactly the same records.
-
-  :param original: Import the preserved source snapshot for independent comparison.
-  """
-  prefix = 'src' if original else 'route_b'
-  backend: ModuleType = importlib.import_module(prefix + ('.analysis.evaluate' if original else '.evaluation.metrics'))
-  data: ModuleType = importlib.import_module(prefix + '.data.datasets')
   state = torch.load(checkpoint, map_location='cpu', weights_only=False, mmap=True)
   means = state['category_means']
   records = data.load_complexity_records()
@@ -68,7 +57,7 @@ def predict_checkpoint(checkpoint: Path, directory: Path, original: bool = False
       os.replace(destination.with_suffix('.tmp'), destination)
       del model, loader
       torch.cuda.empty_cache()
-      print(f'{"original" if original else "ported"} {checkpoint.name}: completed fold {fold}', flush=True)
+      print(f'{checkpoint.name}: completed fold {fold}', flush=True)
     with np.load(destination) as saved:
       for key in saved.files:
         collected.setdefault(key, []).append(saved[key])
@@ -78,20 +67,6 @@ def predict_checkpoint(checkpoint: Path, directory: Path, original: bool = False
   atomic_json(directory / 'metrics.json', summarize(result))
   write_predictions(directory / 'predictions.csv', result)
   return result
-
-
-def compare(reference: dict[str, Array], ported: dict[str, Array]) -> dict[str, float]:
-  """Enforce fixed tolerances without adjusting them after observing results."""
-  differences = {}
-  for key in reference:
-    if key in ('category', 'subject', 'record_index', 'nsd_id', 'fold'):
-      np.testing.assert_array_equal(reference[key], ported[key], err_msg=key)
-    else:
-      np.testing.assert_allclose(reference[key], ported[key], rtol=1e-6, atol=1e-6, err_msg=key)
-      differences[key] = float(np.max(np.abs(reference[key] - ported[key])))
-  for key, value in metrics(reference).items():
-    np.testing.assert_allclose(value, metrics(ported)[key], rtol=1e-6, atol=1e-6, err_msg=key)
-  return differences
 
 
 def metrics(values: dict[str, Array]) -> dict[str, float]:
@@ -127,44 +102,36 @@ def write_predictions(path: Path, values: dict[str, Array]) -> None:
 
 
 def report(root: Path, run_label: str = 'Fresh training') -> None:
-  """Compare checkpoint replay and fresh training without hiding failed reproduction."""
+  """Summarize the available current-run weights and their pooled metrics."""
   import matplotlib
   matplotlib.use('Agg')
   import matplotlib.pyplot as plt
 
   results: dict[str, Metrics] = {}
-  lines = ['# Original Route B reproduction', '',
-           (
-             'Checkpoint replay tests port equivalence. Fresh training tests reproduction'
-             ' under recorded settings.'
-           ), '',
-           '| Visual weight | Run | Pearson | Spearman | Residual Pearson | MAE |',
-           '| --- | --- | --- | --- | --- | --- |']
+  lines = ['# Route B results', '', run_label, '',
+           '| Visual weight | Pearson | Spearman | Residual Pearson | MAE |',
+           '| --- | --- | --- | --- | --- |']
   for weight in (0., .25, .5, .75, 1.):
-    for kind, subdirectory in [('Reference', f'replay/visual_{weight:g}/original'),
-                                ('Port replay', f'replay/visual_{weight:g}/ported'),
-                                (run_label, f'results/visual_{weight:g}')]:
-      path = root / subdirectory / 'metrics.json'
-      if not path.exists():
-        continue
-      result = json.loads(path.read_text())
-      results[f'{weight:g}/{kind}'] = result
-      pooled = result['pooled']
-      lines.append(f'| {weight:g} | {kind} | {pooled["pearson"]:.6f} | {pooled["spearman"]:.6f} | '
-                   f'{pooled["pearson_residual"]:.6f} | {pooled["mae"]:.6f} |')
+    path = root / f'results/visual_{weight:g}/metrics.json'
+    if not path.exists():
+      continue
+    result = json.loads(path.read_text())
+    results[f'{weight:g}'] = result
+    pooled = result['pooled']
+    lines.append(f'| {weight:g} | {pooled["pearson"]:.6f} | {pooled["spearman"]:.6f} | '
+                 f'{pooled["pearson_residual"]:.6f} | {pooled["mae"]:.6f} |')
   variance_path = root / 'results/variance.json'
   if variance_path.exists():
     results['variance'] = json.loads(variance_path.read_text())
-  atomic_json(root / 'comparison.json', results)
-  (root / 'comparison.md').write_text('\n'.join(lines) + '\n')
+  atomic_json(root / 'summary.json', results)
+  (root / 'summary.md').write_text('\n'.join(lines) + '\n')
   figure, axes = plt.subplots(1, 2, figsize=(11, 4))
-  for label in ('Reference', run_label):
-    weights = [weight for weight in (0., .25, .5, .75, 1.) if f'{weight:g}/{label}' in results]
-    for axis, metric in zip(axes, ('pearson', 'pearson_residual'), strict=True):
-      axis.plot(weights, [results[f'{weight:g}/{label}']['pooled'][metric] for weight in weights], 'o-', label=label)
-      axis.set(xlabel='Visual pretraining weight', ylabel=metric.replace('_', ' '))
-      axis.legend()
+  weights = [weight for weight in (0., .25, .5, .75, 1.) if f'{weight:g}' in results]
+  for axis, metric in zip(axes, ('pearson', 'pearson_residual'), strict=True):
+    axis.plot(weights, [results[f'{weight:g}']['pooled'][metric] for weight in weights], 'o-', label=run_label)
+    axis.set(xlabel='Visual pretraining weight', ylabel=metric.replace('_', ' '))
+    axis.legend()
   figure.tight_layout()
-  figure.savefig(root / 'comparison.pdf')
-  figure.savefig(root / 'comparison.png', dpi=200)
+  figure.savefig(root / 'summary.pdf')
+  figure.savefig(root / 'summary.png', dpi=200)
   plt.close(figure)
