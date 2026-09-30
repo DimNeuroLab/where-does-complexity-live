@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -21,7 +24,7 @@ class PublicPipelineTests(unittest.TestCase):
   def test_fresh_configuration_needs_no_legacy_artifacts(self) -> None:
     with tempfile.TemporaryDirectory() as directory:
       root = Path(directory)
-      value = {'inputs': {'nsd': str(root / 'nsd')}, 'output': str(root / 'run'), 'head': {'n_folds': 5}}
+      value = {'inputs': {'nsd_root': str(root / 'nsd')}, 'output_dir': str(root / 'run'), 'head': {'cv_folds': 5}}
       filename = root / 'config.json'
       filename.write_text(json.dumps(value))
       with patch.object(config, '_paths', None):
@@ -37,8 +40,8 @@ class PublicPipelineTests(unittest.TestCase):
   def test_external_pca_models_do_not_redirect_generated_observations(self) -> None:
     with tempfile.TemporaryDirectory() as directory:
       root = Path(directory)
-      value = {'inputs': {'nsd': str(root / 'nsd'), 'pca_models': str(root / 'bundle/pca')},
-               'output': str(root / 'run'), 'head': {'n_folds': 5}}
+      value = {'inputs': {'nsd_root': str(root / 'nsd'), 'pca_models_dir': str(root / 'bundle/pca')},
+               'output_dir': str(root / 'run'), 'head': {'cv_folds': 5}}
       filename = root / 'config.json'
       filename.write_text(json.dumps(value))
       with patch.object(config, '_paths', None):
@@ -84,13 +87,76 @@ class PublicPipelineTests(unittest.TestCase):
     from route_b.run import execute
     with tempfile.TemporaryDirectory() as directory:
       root = Path(directory)
-      value = {'inputs': {'nsd': str(root / 'nsd'), 'pca': str(root / 'preserved')},
-               'output': str(root / 'run'), 'head': {'n_folds': 5}}
+      value = {'inputs': {'nsd_root': str(root / 'nsd'), 'pca_dir': str(root / 'preserved')},
+               'output_dir': str(root / 'run'), 'head': {'cv_folds': 5}}
       filename = root / 'config.json'
       filename.write_text(json.dumps(value))
       with patch.object(config, '_paths', None), self.assertRaisesRegex(ValueError, 'read-only'):
         execute('prepare', 1., filename)
       self.assertFalse((root / 'preserved').exists())
+
+  def test_configuration_and_resume_are_independent_of_launch_directory(self) -> None:
+    with tempfile.TemporaryDirectory() as directory:
+      root = Path(directory)
+      settings = root / 'settings'
+      settings.mkdir()
+      filename = settings / 'run.json'
+      filename.write_text(json.dumps({'output_dir': 'output', 'inputs': {}, 'dino_root': '${UNUSED_DINO_ROOT}'}))
+      command = [sys.executable, '-m', 'route_b', 'run', '--config', str(filename),
+                 '--stages', 'text', '--initialize-only']
+      environment = dict(os.environ, PYTHONPATH=str(Path(config.__file__).resolve().parents[1]))
+      result = subprocess.run(command, cwd=root, env=environment, capture_output=True, text=True)
+      self.assertEqual(result.returncode, 0, result.stderr)
+      result = subprocess.run([*command, '--resume'], cwd=settings, env=environment, capture_output=True, text=True)
+      self.assertEqual(result.returncode, 0, result.stderr)
+      self.assertFalse((root / 'output').exists())
+      manifest = json.loads((settings / 'output/manifest.json').read_text())
+      self.assertEqual(manifest['config']['output_dir'], str(settings / 'output'))
+      # Changing effective settings must still reject resume.
+      value = json.loads(filename.read_text())
+      value['gpu_hours'] = 1
+      filename.write_text(json.dumps(value))
+      result = subprocess.run([*command, '--resume'], cwd=settings, env=environment, capture_output=True, text=True)
+      self.assertNotEqual(result.returncode, 0)
+      self.assertIn('configuration, or environment changed', result.stderr)
+
+  def test_all_configured_paths_expand_beside_the_configuration(self) -> None:
+    with tempfile.TemporaryDirectory() as directory:
+      root = Path(directory)
+      filename = root / 'settings.json'
+      filename.write_text(json.dumps({'output_dir': 'run', 'inputs': {
+        'nsd_root': '${TEST_NSD_ROOT}', 'features_dir': 'features', 'pca_dir': 'pca',
+        'checkpoints_dir': 'checkpoints', 'pca_models_dir': 'models', 'ranking_file': 'ranking.csv',
+      }, 'dino_root': 'dinov2', 'head': {'cv_folds': 5}}))
+      with patch.dict(os.environ, {'TEST_NSD_ROOT': 'nsd'}), patch.object(config, '_paths', None):
+        loaded = configure(filename)
+        for key, value in loaded['inputs'].items():
+          self.assertTrue(Path(value).is_relative_to(root), key)
+        self.assertEqual(config.paths().nsd, root / 'nsd')
+        self.assertEqual(loaded['dino_root'], str(root / 'dinov2'))
+      value = json.loads(filename.read_text())
+      value['original_repository'] = 'old-checkout'
+      filename.write_text(json.dumps(value))
+      with self.assertRaisesRegex(ValueError, 'Unknown configuration fields'):
+        configure(filename)
+
+  def test_text_only_inputs_do_not_access_nsd_or_ranking(self) -> None:
+    from route_b.provenance import input_files
+    with tempfile.TemporaryDirectory() as directory:
+      root = Path(directory)
+      filename = root / 'config.json'
+      filename.write_text(json.dumps({'output_dir': 'run'}))
+      with patch.object(config, '_paths', None):
+        configure(filename, ('text',))
+        self.assertIsNone(config.paths().nsd)
+        self.assertEqual(input_files('text'), [])
+
+  def test_canonical_commands_dispatch_without_running_other_workflows(self) -> None:
+    from route_b.__main__ import COMMANDS, main
+    for command, module in COMMANDS.items():
+      with self.subTest(command=command), patch(module + '.main') as entry:
+        self.assertEqual(main([command, '--help']), 0)
+        entry.assert_called_once_with(['--help'])
 
 
 if __name__ == '__main__':

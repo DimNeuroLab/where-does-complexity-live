@@ -130,8 +130,8 @@ def main() -> None:
   """Plot ranked examples from an exported CSV and a configurable image tree."""
   import argparse
 
-  parser = argparse.ArgumentParser(description=__doc__)
-  parser.add_argument('--ranking', type=Path, required=True)
+  parser = argparse.ArgumentParser(allow_abbrev=False, description=__doc__)
+  parser.add_argument('--ranking-file', dest='ranking', type=Path, required=True)
   parser.add_argument('--images-dir', type=Path, required=True)
   parser.add_argument('--output-dir', type=Path, required=True)
   args = parser.parse_args()

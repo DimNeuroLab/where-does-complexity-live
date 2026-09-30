@@ -259,22 +259,22 @@ def add_common_arguments(parser: argparse.ArgumentParser) -> None:
   """Add the data-location flags shared by every route_a.embedding entry point."""
   parser.add_argument('--nsd-root', type=Path, required=True, help='Root of the NSD/Algonauts-2023 data tree.')
   parser.add_argument('--dino-dir', type=Path, required=True, help='Directory with {subject}_dino_layers.npy files.')
-  parser.add_argument('--clip-img-dir', type=Path, required=True, help='Directory with {subject}_clip_img.npy files.')
-  parser.add_argument('--clip-text-path', type=Path, required=True, help='Path to the CLIP text embeddings .npz file.')
-  parser.add_argument('--complexity-csv', type=Path, required=True, help='Complexity-ranking CSV.')
+  parser.add_argument('--clip-image-dir', dest='clip_img_dir', type=Path, required=True, help='Directory with {subject}_clip_img.npy files.')
+  parser.add_argument('--clip-text-file', dest='clip_text_path', type=Path, required=True, help='Path to the CLIP text embeddings .npz file.')
+  parser.add_argument('--ranking-file', dest='complexity_csv', type=Path, required=True, help='Complexity-ranking CSV.')
 
 
 def build_parser() -> argparse.ArgumentParser:
-  parser = argparse.ArgumentParser(description='Train the embedding-conditioned complexity model with k-fold CV.')
+  parser = argparse.ArgumentParser(allow_abbrev=False, description='Train the embedding-conditioned complexity model with k-fold CV.')
   add_common_arguments(parser)
-  parser.add_argument('--out', type=Path, required=True, help='Output directory for checkpoints and results.')
+  parser.add_argument('--output-dir', dest='out', type=Path, required=True, help='Output directory for checkpoints and results.')
   parser.add_argument('--arch', default='small', choices=[*ARCH_CONFIGS, 'direct'])
   parser.add_argument(
     '--features', default='all', choices=['all', 'clip_only', 'dino_only'],
     help="Which image embeddings feed the model. 'all' is the paper's main model (Fig. 5/6, Table 6); "
          "'clip_only'/'dino_only' reproduce the ablation in Appendix Fig./Table B1.",
   )
-  parser.add_argument('--folds', type=int, default=5)
+  parser.add_argument('--cv-folds', dest='folds', type=int, default=5)
   parser.add_argument('--epochs', type=int, default=100)
   parser.add_argument('--lr', type=float, default=1e-3)
   parser.add_argument('--patience', type=int, default=20)

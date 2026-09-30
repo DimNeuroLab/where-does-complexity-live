@@ -36,8 +36,8 @@ def decompose(path: Path, min_pairs: int = 2) -> dict[str, float | int]:
 
 
 def main() -> None:
-  parser = argparse.ArgumentParser(description=__doc__)
-  parser.add_argument('ranking', type=Path)
+  parser = argparse.ArgumentParser(allow_abbrev=False, description=__doc__)
+  parser.add_argument('--ranking-file', dest='ranking', type=Path, required=True)
   parser.add_argument('--min-pairs', type=int, default=2)
   args = parser.parse_args()
   if args.min_pairs < 2:

@@ -25,9 +25,9 @@ Notes:
  - You can optionally filter to TP-only, correct-only, fixOnTarget-only, split=train/valid.
 
 Usage examples:
- python coco_json_to_csv.py --in_json cocosearch18.json --out_csv cocosearch_model.csv
- python coco_json_to_csv.py --in_json cocosearch18.json --out_csv tp.csv --only_condition TP --only_correct 1
- python coco_json_to_csv.py --in_json cocosearch18.json --out_csv tp_fix.csv --only_condition TP --only_fixOnTarget 1
+ python coco_json_to_csv.py --scanpaths-file cocosearch18.json --output-file cocosearch_model.csv
+ python coco_json_to_csv.py --scanpaths-file cocosearch18.json --output-file tp.csv --only-condition TP --only-correct 1
+ python coco_json_to_csv.py --scanpaths-file cocosearch18.json --output-file tp_fix.csv --only-condition TP --only-fix-on-target 1
 """
 
 from __future__ import annotations
@@ -241,20 +241,20 @@ def json_to_csv(
 
 
 def main() -> None:
-  ap = argparse.ArgumentParser(description='Convert COCO-Search18 JSON array to model-ready CSV.')
-  ap.add_argument('--in_json', required=True, type=Path, help='Path to COCO-Search18 JSON (or .json.gz)')
-  ap.add_argument('--out_csv', required=True, type=Path, help='Output CSV path')
+  ap = argparse.ArgumentParser(allow_abbrev=False, description='Convert COCO-Search18 JSON array to model-ready CSV.')
+  ap.add_argument('--scanpaths-file', dest='in_json', required=True, type=Path, help='Path to COCO-Search18 JSON (or .json.gz)')
+  ap.add_argument('--output-file', dest='out_csv', required=True, type=Path, help='Output CSV path')
 
   ap.add_argument('--movement', choices=['saccades', 'fixations'], default='saccades',
           help='Define N as number of saccades (=fixations-1) or fixations (=fixations). Default: saccades')
 
-  ap.add_argument('--only_split', choices=['train', 'valid'], default=None,
+  ap.add_argument('--only-split', dest='only_split', choices=['train', 'valid'], default=None,
           help='Filter rows by split')
-  ap.add_argument('--only_condition', default=None,
+  ap.add_argument('--only-condition', dest='only_condition', default=None,
           help='Filter rows by condition (e.g., TP/TA or present/absent). Exact string match.')
-  ap.add_argument('--only_correct', choices=['0', '1'], default=None,
+  ap.add_argument('--only-correct', dest='only_correct', choices=['0', '1'], default=None,
           help='Filter rows by correctness (1=correct only, 0=incorrect only)')
-  ap.add_argument('--only_fixOnTarget', choices=['0', '1'], default=None,
+  ap.add_argument('--only-fix-on-target', dest='only_fixOnTarget', choices=['0', '1'], default=None,
           help='Filter rows by fixOnTarget flag (1=true only, 0=false only)')
 
   args = ap.parse_args()

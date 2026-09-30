@@ -36,11 +36,11 @@ def export_ranking(posterior: Path, trials: Path, output: Path, plot: bool = Tru
 
 
 def main() -> None:
-  parser = argparse.ArgumentParser(description=__doc__)
+  parser = argparse.ArgumentParser(allow_abbrev=False, description=__doc__)
   sources = parser.add_mutually_exclusive_group(required=True)
-  sources.add_argument('--posterior', type=Path)
+  sources.add_argument('--posterior-file', dest='posterior', type=Path)
   sources.add_argument('--results-dir', type=Path)
-  parser.add_argument('--trials', type=Path, required=True)
+  parser.add_argument('--trials-file', dest='trials', type=Path, required=True)
   parser.add_argument('--output-dir', type=Path, required=True)
   parser.add_argument('--no-plots', action='store_true')
   args = parser.parse_args()

@@ -87,11 +87,11 @@ def is_fixation_inside(x: float, y: float, bbox: tuple[float, float, float, floa
   return (bx <= x <= bx + bw) and (by <= y <= by + bh)
 
 def main() -> None:
-  parser = argparse.ArgumentParser(description='Reproduce the NSD target-box correction and trial filters.')
-  parser.add_argument('--csv', type=Path, required=True)
-  parser.add_argument('--scanpaths', type=Path, required=True)
-  parser.add_argument('--metadata', type=Path, required=True)
-  parser.add_argument('--output', type=Path, required=True)
+  parser = argparse.ArgumentParser(allow_abbrev=False, description='Reproduce the NSD target-box correction and trial filters.')
+  parser.add_argument('--trials-file', dest='csv', type=Path, required=True)
+  parser.add_argument('--scanpaths-file', dest='scanpaths', type=Path, required=True)
+  parser.add_argument('--metadata-file', dest='metadata', type=Path, required=True)
+  parser.add_argument('--output-file', dest='output', type=Path, required=True)
   args = parser.parse_args()
   args.output.parent.mkdir(parents=True, exist_ok=True)
   # 1. Load Data

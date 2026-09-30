@@ -10,12 +10,12 @@ from scipy.stats import spearmanr
 
 
 def main() -> None:
-  parser = argparse.ArgumentParser(description=__doc__)
-  parser.add_argument('--ranking', type=Path, required=True)
-  parser.add_argument('--reference', type=Path, required=True)
-  parser.add_argument('--output', type=Path, required=True)
+  parser = argparse.ArgumentParser(allow_abbrev=False, description=__doc__)
+  parser.add_argument('--ranking-file', dest='ranking', type=Path, required=True)
+  parser.add_argument('--reference-file', dest='reference', type=Path, required=True)
+  parser.add_argument('--output-file', dest='output', type=Path, required=True)
   parser.add_argument('--mode', choices=['export', 'refit'], required=True)
-  parser.add_argument('--diagnostics', type=Path, help='Required for checking a fresh fit.')
+  parser.add_argument('--diagnostics-file', dest='diagnostics', type=Path, help='Required for checking a fresh fit.')
   args = parser.parse_args()
   actual, reference = (pd.read_csv(path, float_precision='round_trip') for path in [args.ranking, args.reference])
   for frame in [actual, reference]:
@@ -34,7 +34,7 @@ def main() -> None:
   converged = True
   if args.mode == 'refit':
     if args.diagnostics is None:
-      parser.error('--diagnostics is required for refit verification.')
+      parser.error('--diagnostics-file is required for refit verification.')
     diagnostics = json.loads(args.diagnostics.read_text())
     converged = (
       diagnostics['divergences'] == 0 and diagnostics['max_rhat'] is not None

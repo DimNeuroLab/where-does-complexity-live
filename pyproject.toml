@@ -36,8 +36,10 @@ embedding = [
 dev = ['pytest>=8']
 
 [project.scripts]
-complexity-route-a = 'route_a.engineered.__main__:main'
-complexity-route-a-embedding = 'route_a.embedding.__main__:main'
+complexity = 'complexity.__main__:main'
+route-a-engineered = 'route_a.engineered.__main__:main'
+route-a-embedding = 'route_a.embedding.__main__:main'
+route-b = 'route_b.__main__:main'
 
 [tool.setuptools.packages.find]
 include = ['complexity*', 'route_a*', 'route_b*', 'shared*']

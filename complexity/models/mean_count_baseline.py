@@ -246,12 +246,12 @@ def compute_ranking(
   print(out_df.head())
 
 if __name__ == '__main__':
-  parser = argparse.ArgumentParser(description='Compute baseline difficulty ranking using average N.')
-  parser.add_argument('--csv', required=True, help='Path to the input CSV file.')
-  parser.add_argument('--output_dir', required=True, help='Directory to save the results.')
+  parser = argparse.ArgumentParser(allow_abbrev=False, description='Compute baseline difficulty ranking using average N.')
+  parser.add_argument('--trials-file', dest='csv', required=True, help='Path to the input CSV file.')
+  parser.add_argument('--output-dir', dest='output_dir', required=True, help='Directory to save the results.')
   parser.add_argument('--name', default='mean_N', help='Model name suffix for the output filename.')
-  parser.add_argument('--no_cv', action='store_true', help='Skip CV stability analysis.')
-  parser.add_argument('--cv_splits', type=int, default=5, help='Number of CV splits.')
+  parser.add_argument('--no-cv', dest='no_cv', action='store_true', help='Skip CV stability analysis.')
+  parser.add_argument('--cv-folds', dest='cv_splits', type=int, default=5, help='Number of CV splits.')
 
   parser.add_argument('--seed', type=int, default=42)
   args = parser.parse_args()
