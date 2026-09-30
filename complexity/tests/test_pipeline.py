@@ -183,6 +183,27 @@ class PipelineTests(unittest.TestCase):
       self.assertEqual(result['score'].tolist(), [5., 2.])
       self.assertEqual(result['task'].tolist(), ['chair', 'bowl'])
 
+  def test_ranking_comparison_commands_load_and_write_metrics(self) -> None:
+    for module in ('compare_ranking_pair', 'compare_rankings'):
+      result = subprocess.run([sys.executable, '-m', 'complexity.evaluation.' + module, '--help'],
+                              capture_output=True, text=True)
+      self.assertEqual(result.returncode, 0, result.stderr)
+    with tempfile.TemporaryDirectory() as directory:
+      root = Path(directory)
+      left, right = root / 'left.csv', root / 'right.csv'
+      left.write_text('image,score\na,1\nb,2\nc,3\n')
+      right.write_text('image,score\na,2\nb,4\nc,6\n')
+      result = subprocess.run([
+        sys.executable, '-m', 'complexity.evaluation.compare_ranking_pair',
+        '--left-file', str(left), '--right-file', str(right), '--output-dir', str(root / 'comparison'),
+      ], capture_output=True, text=True)
+      self.assertEqual(result.returncode, 0, result.stderr)
+      summary = pd.read_csv(next((root / 'comparison').glob('summary_*.csv'))).iloc[0]
+      self.assertEqual(summary['n_images'], 3)
+      self.assertAlmostEqual(summary['spearman_rho'], 1.)
+      self.assertAlmostEqual(summary['rmse'], np.sqrt(14 / 3))
+      self.assertEqual(len(list((root / 'comparison').glob('*.png'))), 1)
+
 
 if __name__ == '__main__':
   unittest.main()

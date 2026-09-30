@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-import argparse
 from __future__ import annotations
+
+import argparse
 from pathlib import Path
 
 import matplotlib.pyplot as plt
