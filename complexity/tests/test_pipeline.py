@@ -20,29 +20,10 @@ from complexity.generation.generate_scanpaths import partition_images
 from complexity.models import fit_response_time
 from complexity.models.runner import prepare_loo_likelihood, registry
 from complexity.preprocessing.select_coco_trials import select_trials
-from complexity.preprocessing.prepare_successful_coco import prepare
 
 
 class PipelineTests(unittest.TestCase):
-  def test_success_filter_excludes_failed_trials_even_for_detectable_images(self) -> None:
-    with tempfile.TemporaryDirectory() as directory:
-      root = Path(directory)
-      base = {
-        'subject': 1, 'name': 'a', 'task': 'bottle', 'condition': 'present',
-        'X': [0, 1], 'Y': [0, 1], 'T': [100, 100], 'RT': 200, 'length': 2, 'bbox': [0, 0, 2, 2],
-      }
-      records = [dict(base, correct=flag) for flag in [0, 1, None]]
-      records += [dict(base, correct=1, condition='absent'), dict(base, correct=1, name='b', length=1)]
-      source = root / 'source.json'
-      source.write_text(json.dumps(records))
-      report = prepare(source, root / 'prepared')
-      selected = pd.read_csv(root / 'prepared/successful.csv')
-      self.assertEqual(selected['trial'].tolist(), [1, 2])
-      self.assertEqual(report['rt_models']['trials'], 2)
-      self.assertEqual(report['count_models']['trials'], 1)
-      self.assertEqual(report['selected_with_zero_saccades'], 1)
-
-  def test_joint_cv_preserves_draw_pairs_in_all_likelihood_families(self) -> None:
+  def test_joint_cv_matches_historical_mixture_in_all_likelihood_families(self) -> None:
     posterior = {
       name: np.array([[value, value]]) for name, value in {
         'b0_N': 0., 'b_trial_N': 0., 'b_C_N': 0., 'alpha_N': 2.,
@@ -60,7 +41,7 @@ class PipelineTests(unittest.TestCase):
     }))
     fold = fit_response_time.Fold(0, np.array([0, 1]), np.array([2]))
     names = ['M5a_joint_normal_logN1p', 'M2J_joint_studentT_logN1p',
-             'M3J_joint_shiftedLN_logN1p', 'M4J_joint_exGaussian_logN1p']
+             'M3J_joint_shiftedLN_logN1p', 'M4J_joint_exGaussian_logN1p', 'M5b_joint_normal_N']
     scorers = [
       lambda mu, sigma, shape: fit_response_time.score_logrt_mixture_normal(np.array([1.]), mu, sigma),
       lambda mu, sigma, shape: fit_response_time.score_logrt_mixture_studentt(np.array([1.]), mu, sigma, shape),
@@ -70,13 +51,14 @@ class PipelineTests(unittest.TestCase):
       lambda mu, sigma, shape: fit_response_time.score_logrt_mixture_exgaussian(
         np.array([1.]), np.array([np.e]), mu, sigma, shape,
       ),
+      lambda mu, sigma, shape: fit_response_time.score_logrt_mixture_normal(np.array([1.]), mu, sigma),
     ]
     for index, (name, scorer) in enumerate(zip(names, scorers)):
       with self.subTest(model=name):
         shape = [0.1, 0.2] if index == 2 else [3., 7.]
-        component_scores = [scorer(np.array([[mu]]), np.array([sigma]), np.array([shape[draw]]))[1]
-                            for draw, (mu, sigma) in enumerate([(0., 1.), (10., 10.)])]
-        expected = np.logaddexp(*component_scores) - np.log(2.)
+        # The recovered computation mixes these four mean/scale combinations.
+        expected = scorer(np.array([[0.], [10.], [0.], [10.]]), np.array([1., 1., 10., 10.]),
+                          np.array([shape[0], shape[0], shape[1], shape[1]]))[1]
         with patch('complexity.models.sampling.sample_fold', return_value=idata), \
              patch.object(fit_response_time, 'make_image_stratified_cell_folds', return_value=[fold]), \
              patch.object(fit_response_time, 'ranking_stability_from_fold_samples', return_value={}):

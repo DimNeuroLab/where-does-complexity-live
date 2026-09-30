@@ -12,15 +12,23 @@ from collections import Counter
 from pathlib import Path
 
 
-def compare(run: Path, reference: Path) -> list[dict[str, str | float]]:
+def compare(run: Path, reference: Path, tables: list[str] | None = None) -> list[dict[str, str | float]]:
   """Return one comparison per published table cell.
 
-  :param run: Directory containing the four COCO model suites.
+  :param run: Directory containing the selected COCO model suites.
   :param reference: CSV containing published values and their printed precision.
+  :param tables: Paper table identifiers to compare, or all tables when omitted.
   :returns: Comparisons with differences and explicit availability status.
   """
   with reference.open() as stream:
     expected = list(csv.DictReader(stream))
+  if tables is not None:
+    unknown = set(tables) - {row['table'] for row in expected}
+    if unknown:
+      raise ValueError('Unknown paper tables: ' + ', '.join(sorted(unknown)))
+    expected = [row for row in expected if row['table'] in tables]
+  if not expected:
+    raise ValueError('No reference cells selected.')
   cache: dict[Path, dict[str, dict[str, str]]] = {}
   results: list[dict[str, str | float]] = []
   for row in expected:
@@ -51,8 +59,9 @@ def main() -> None:
   parser.add_argument('--run', type=Path, required=True)
   parser.add_argument('--reference', type=Path, default=Path(__file__).resolve().parents[1] / 'reference/paper_tables.csv')
   parser.add_argument('--output', type=Path, required=True)
+  parser.add_argument('--tables', nargs='+', help='Compare only the named paper tables, such as 1 A1.')
   args = parser.parse_args()
-  rows = compare(args.run, args.reference)
+  rows = compare(args.run, args.reference, args.tables)
   args.output.mkdir(parents=True, exist_ok=True)
   with (args.output / 'table_differences.csv').open('w') as stream:
     writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
@@ -61,6 +70,7 @@ def main() -> None:
   counts = dict(Counter(str(row['status']) for row in rows))
   summary = {
     'run': str(args.run.resolve()), 'reference': str(args.reference.resolve()), 'counts': counts,
+    'tables': sorted({str(row['table']) for row in rows}),
     'all_cells_available': not counts.get('missing', 0),
     'all_match_printed_values': counts.get('matches_printed_value', 0) == len(rows),
     'criterion': 'Exact agreement at the precision printed in the paper; differences are reported without retuning.',
