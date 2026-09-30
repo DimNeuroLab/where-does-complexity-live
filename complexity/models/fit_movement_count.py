@@ -523,7 +523,10 @@ def cellheldout_cv(
     chains: int = 2,
     target_accept: float = 0.95,
     topk: int = 20,
+    checkpoint_dir: Optional[Path] = None,
 ) -> Dict[str, dict]:
+    from complexity.models.sampling import sample_fold
+
     folds = make_image_stratified_cell_folds(d, n_splits=n_splits, seed=seed)
     rng = np.random.default_rng(seed)
     results = {}
@@ -544,7 +547,9 @@ def cellheldout_cv(
 
             m = builder(d_tr, meta, **kwargs)
             with m:
-                idata = pm.sample(
+                idata = sample_fold(
+                    m, d_tr, d_te,
+                    checkpoint_dir / name / f'fold_{fold.fold_id}' if checkpoint_dir is not None else None,
                     draws=draws,
                     tune=tune,
                     chains=chains,

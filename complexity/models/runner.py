@@ -45,6 +45,25 @@ def registry(module: ModuleType, family: str) -> dict[str, tuple[Any, ...]]:
   return specs
 
 
+def prepare_loo_likelihood(
+  module: ModuleType, family: str, spec: tuple[Any, ...], idata: az.InferenceData,
+  data: pd.DataFrame, meta: dict[str, Any], seed: int, mc_n: int,
+) -> None:
+  """Restore the original joint-model marginalization before RT LOO scoring.
+
+  Legacy model specifications and metadata retain their original library types.
+  Failures propagate instead of silently comparing conditional and marginal RT.
+  """
+  if family != 'rt' or spec[2] != 'joint':
+    return
+  if 'log_likelihood' not in idata.groups():
+    raise ValueError('Joint LOO requires a log_likelihood group.')
+  if 'logrt_marginal' not in idata.log_likelihood:
+    idata.log_likelihood['logrt_marginal'] = module.compute_joint_marginal_loglik(
+      idata, data, meta, rt_family=spec[4], xN_mode=spec[5], mcN=max(20, mc_n), seed=seed,
+    )
+
+
 def run_suite(module: ModuleType, family: str) -> None:
   """Fit selected models, save diagnostics, and optionally run LOO and CV."""
   specs = registry(module, family)
@@ -130,6 +149,8 @@ def run_suite(module: ModuleType, family: str) -> None:
       manifest_path.write_text(json.dumps(manifest, indent=2) + '\n')
 
   if not args.skip_loo and len(fitted) >= 2:
+    for name, (_, idata) in fitted.items():
+      prepare_loo_likelihood(module, family, selected[name], idata, data, meta, args.seed, args.cv_mcn)
     comparison = module.compare_loo(fitted, data)
     comparison.to_csv(args.results_dir / 'loo_table.csv')
   if not args.skip_cv:

@@ -1,21 +1,144 @@
 """Regression checks for scientific data selection, identities, and exports."""
 
+import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+import arviz as az
 import numpy as np
 import pandas as pd
 import xarray as xr
 
-from complexity.evaluation.compute_variance import decompose
 from complexity.evaluation.compare_paper_tables import compare
+from complexity.evaluation.compute_variance import decompose
 from complexity.exports.export_rankings import export_ranking
 from complexity.generation.generate_scanpaths import partition_images
+from complexity.models import fit_response_time
+from complexity.models.runner import prepare_loo_likelihood, registry
 from complexity.preprocessing.select_coco_trials import select_trials
+from complexity.preprocessing.prepare_successful_coco import prepare
 
 
 class PipelineTests(unittest.TestCase):
+  def test_success_filter_excludes_failed_trials_even_for_detectable_images(self) -> None:
+    with tempfile.TemporaryDirectory() as directory:
+      root = Path(directory)
+      base = {
+        'subject': 1, 'name': 'a', 'task': 'bottle', 'condition': 'present',
+        'X': [0, 1], 'Y': [0, 1], 'T': [100, 100], 'RT': 200, 'length': 2, 'bbox': [0, 0, 2, 2],
+      }
+      records = [dict(base, correct=flag) for flag in [0, 1, None]]
+      records += [dict(base, correct=1, condition='absent'), dict(base, correct=1, name='b', length=1)]
+      source = root / 'source.json'
+      source.write_text(json.dumps(records))
+      report = prepare(source, root / 'prepared')
+      selected = pd.read_csv(root / 'prepared/successful.csv')
+      self.assertEqual(selected['trial'].tolist(), [1, 2])
+      self.assertEqual(report['rt_models']['trials'], 2)
+      self.assertEqual(report['count_models']['trials'], 1)
+      self.assertEqual(report['selected_with_zero_saccades'], 1)
+
+  def test_joint_cv_preserves_draw_pairs_in_all_likelihood_families(self) -> None:
+    posterior = {
+      name: np.array([[value, value]]) for name, value in {
+        'b0_N': 0., 'b_trial_N': 0., 'b_C_N': 0., 'alpha_N': 2.,
+        'b_trial_RT': 0., 'b_xN': 0., 'b_C_RT': 0.,
+      }.items()
+    }
+    posterior.update({
+      'b0_RT': np.array([[0., 10.]]), 'sigma_RT': np.array([[1., 10.]]),
+      'sigma': np.array([[1., 10.]]), 'nu': np.array([[3., 7.]]), 'tau': np.array([[0.1, 0.2]]),
+      **{name: np.zeros((1, 2, 1)) for name in ['C_image', 'subj_re_N', 'subj_re_RT']},
+    })
+    idata = az.from_dict(posterior=posterior)
+    data, meta = fit_response_time.prepare_df(pd.DataFrame({
+      'RT': [np.e] * 3, 'N': [1] * 3, 'subject': [1] * 3, 'image': ['a'] * 3, 'trial': [1, 2, 3],
+    }))
+    fold = fit_response_time.Fold(0, np.array([0, 1]), np.array([2]))
+    names = ['M5a_joint_normal_logN1p', 'M2J_joint_studentT_logN1p',
+             'M3J_joint_shiftedLN_logN1p', 'M4J_joint_exGaussian_logN1p']
+    scorers = [
+      lambda mu, sigma, shape: fit_response_time.score_logrt_mixture_normal(np.array([1.]), mu, sigma),
+      lambda mu, sigma, shape: fit_response_time.score_logrt_mixture_studentt(np.array([1.]), mu, sigma, shape),
+      lambda mu, sigma, shape: fit_response_time.score_logrt_mixture_shifted_lognormal(
+        np.array([1.]), np.array([np.e]), mu, sigma, shape,
+      ),
+      lambda mu, sigma, shape: fit_response_time.score_logrt_mixture_exgaussian(
+        np.array([1.]), np.array([np.e]), mu, sigma, shape,
+      ),
+    ]
+    for index, (name, scorer) in enumerate(zip(names, scorers)):
+      with self.subTest(model=name):
+        shape = [0.1, 0.2] if index == 2 else [3., 7.]
+        component_scores = [scorer(np.array([[mu]]), np.array([sigma]), np.array([shape[draw]]))[1]
+                            for draw, (mu, sigma) in enumerate([(0., 1.), (10., 10.)])]
+        expected = np.logaddexp(*component_scores) - np.log(2.)
+        with patch('complexity.models.sampling.sample_fold', return_value=idata), \
+             patch.object(fit_response_time, 'make_image_stratified_cell_folds', return_value=[fold]), \
+             patch.object(fit_response_time, 'ranking_stability_from_fold_samples', return_value={}):
+          actual = fit_response_time.cellheldout_cv(
+            data, meta, {name: registry(fit_response_time, 'rt')[name]}, mcN=2,
+          )
+        self.assertAlmostEqual(actual[name]['elpd_logrt_total_mean'], expected, places=12)
+
+  def test_verification_reports_changed_labels_despite_matching_shared_scores(self) -> None:
+    with tempfile.TemporaryDirectory() as directory:
+      root = Path(directory)
+      for name, images in [('actual', ['a', 'b', 'new']), ('reference', ['a', 'b', 'old'])]:
+        pd.DataFrame({'image': images, 'task': ['bottle'] * 3, 'score': [1., 2., 3.]}).to_csv(
+          root / f'{name}.csv', index=False,
+        )
+      (root / 'diagnostics.json').write_text(json.dumps({
+        'divergences': 0, 'max_rhat': 1., 'min_ess_bulk': 500, 'min_ess_tail': 500,
+      }))
+      result = subprocess.run([
+        sys.executable, '-m', 'complexity.evaluation.verify_ranking', '--ranking', str(root / 'actual.csv'),
+        '--reference', str(root / 'reference.csv'), '--output', str(root / 'report.json'), '--mode', 'refit',
+        '--diagnostics', str(root / 'diagnostics.json'),
+      ], capture_output=True, text=True)
+      self.assertEqual(result.returncode, 1, result.stderr)
+      report = json.loads((root / 'report.json').read_text())
+      self.assertEqual(report['added_labels'], ['new'])
+      self.assertEqual(report['missing_labels'], ['old'])
+      self.assertEqual(report['shared_rows'], 2)
+      self.assertTrue(report['numerical_agreement'])
+      self.assertFalse(report['passed'])
+
+  def test_joint_loo_marginalizes_count_before_scoring(self) -> None:
+    shape = (2, 50)
+    posterior = xr.Dataset(
+      {
+        **{name: (('chain', 'draw'), np.full(shape, value)) for name, value in {
+          'b0_RT': 0., 'b_trial_RT': 0., 'b_xN': 1., 'b_C_RT': 1., 'alpha_N': 2., 'sigma_RT': 0.5,
+        }.items()},
+        'subj_re_RT': (('chain', 'draw', 'subject'), np.zeros((*shape, 1))),
+        'C_image': (('chain', 'draw', 'image'), np.zeros((*shape, 1))),
+        'mu_N': (('chain', 'draw', 'obs'), np.full((*shape, 4), 2.)),
+      },
+      coords={'chain': range(2), 'draw': range(50), 'subject': [0], 'image': ['a'], 'obs': range(4)},
+    )
+    data = pd.DataFrame({
+      'log_trial_c': [0.] * 4, 'subj_idx': [0] * 4, 'img_idx': [0] * 4,
+      'log_rt': [0.2, 0.4, 0.6, 0.8], 'RT': np.exp([0.2, 0.4, 0.6, 0.8]),
+    })
+    idata = az.InferenceData(posterior=posterior, log_likelihood=xr.Dataset({
+      'logrt_like': (('chain', 'draw', 'obs'), np.full((*shape, 4), 20.)),
+    }))
+    spec = registry(fit_response_time, 'rt')['M5a_joint_normal_logN1p']
+    meta = {'logN1p_mean': 0.}
+    expected = fit_response_time.compute_joint_marginal_loglik(
+      idata, data, meta, rt_family='normal_logrt', xN_mode='logN1p', mcN=20, seed=42,
+    )
+    prepare_loo_likelihood(fit_response_time, 'rt', spec, idata, data, meta, seed=42, mc_n=2)
+    np.testing.assert_array_equal(idata.log_likelihood['logrt_marginal'], expected)
+    loo, selected = fit_response_time.loo_on_common_logrt('joint', None, idata, data)
+    self.assertEqual(selected, 'logrt_marginal')
+    self.assertLess(float(loo.elpd_loo), 0.)
+
   def test_paper_comparison_distinguishes_missing_and_numerical_differences(self) -> None:
     with tempfile.TemporaryDirectory() as directory:
       root = Path(directory)

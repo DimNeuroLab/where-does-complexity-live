@@ -948,6 +948,7 @@ def cellheldout_cv(
     target_accept: float = 0.95,
     mcN: int = 2,
     topk: int = 20,
+    checkpoint_dir: Optional[Path] = None,
 ) -> Dict[str, dict]:
     """
     Runs image-stratified cell-held-out CV for each model.
@@ -957,6 +958,8 @@ def cellheldout_cv(
       xN_mode only for joint.
     Returns per-model summary including ranking stability computed from fold idatas.
     """
+    from complexity.models.sampling import sample_fold
+
     folds = make_image_stratified_cell_folds(d, n_splits=n_splits, seed=seed)
 
     rng = np.random.default_rng(seed)
@@ -986,7 +989,9 @@ def cellheldout_cv(
             # build + fit
             m = builder(d_tr, meta, **kwargs)
             with m:
-                idata = pm.sample(
+                idata = sample_fold(
+                    m, d_tr, d_te,
+                    checkpoint_dir / name / f'fold_{fold.fold_id}' if checkpoint_dir is not None else None,
                     draws=draws,
                     tune=tune,
                     chains=chains,
@@ -1066,11 +1071,6 @@ def cellheldout_cv(
                 subj_re_RT = _ensure_S_first(post["subj_re_RT"].values.astype(float), S)
                 C_image = _ensure_S_first(post["C_image"].values.astype(float), S)
 
-                # N parameters (pointwise mu_N and alpha_N)
-                mu_N = post["mu_N"].values.astype(float)
-                if mu_N.shape[0] != S and mu_N.shape[-1] == S:
-                    mu_N = np.moveaxis(mu_N, -1, 0)  # (S, T_train_obs) but for held-out we need recompute!
-
                 # Recompute mu_N on held-out using posterior parameters (avoid dependence on training obs length):
                 b0_N = post["b0_N"].values.astype(float)
                 b_trial_N = post["b_trial_N"].values.astype(float)
@@ -1109,36 +1109,37 @@ def cellheldout_cv(
                 else:
                     raise ValueError("bad xN_mode")
 
+                # Each MC block contains every posterior draw in its original order.
                 mu_mc = np.concatenate(mu_all, axis=0)  # (S*mcN, T)
                 if rt_family == "normal_logrt":
                     sigma = post["sigma_RT"].values.astype(float)
-                    sigma_mc = np.repeat(sigma, mcN)
+                    sigma_mc = np.tile(sigma, mcN)
                     rmse, elpd = score_logrt_mixture_normal(y, mu_mc, sigma_mc)
 
                 elif rt_family == "studentt_logrt":
                     sigma = post["sigma_RT"].values.astype(float)
-                    sigma_mc = np.repeat(sigma, mcN)
+                    sigma_mc = np.tile(sigma, mcN)
                     if "nu_minus2_over10" in post:
                         nu = post["nu_minus2_over10"].values.astype(float) + 2.0
                     elif "nu" in post:
                         nu = post["nu"].values.astype(float)
                     else:
                         nu = np.full(S, 5.0)
-                    nu_mc = np.repeat(nu, mcN)
+                    nu_mc = np.tile(nu, mcN)
                     rmse, elpd = score_logrt_mixture_studentt(y, mu_mc, sigma_mc, nu_mc)
 
                 elif rt_family == "shifted_lognormal_rt":
                     sigma = post["sigma"].values.astype(float)
                     tau = post["tau"].values.astype(float)
-                    sigma_mc = np.repeat(sigma, mcN)
-                    tau_mc = np.repeat(tau, mcN)
+                    sigma_mc = np.tile(sigma, mcN)
+                    tau_mc = np.tile(tau, mcN)
                     rmse, elpd = score_logrt_mixture_shifted_lognormal(y, rt, mu_mc, sigma_mc, tau_mc)
 
                 elif rt_family == "exgaussian_rt":
                     sigma = post["sigma"].values.astype(float)
                     nu = post["nu"].values.astype(float)
-                    sigma_mc = np.repeat(sigma, mcN)
-                    nu_mc = np.repeat(nu, mcN)
+                    sigma_mc = np.tile(sigma, mcN)
+                    nu_mc = np.tile(nu, mcN)
                     rmse, elpd = score_logrt_mixture_exgaussian(y, rt, mu_mc, sigma_mc, nu_mc)
 
                 else:

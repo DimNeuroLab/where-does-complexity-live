@@ -42,14 +42,17 @@ def main() -> None:
       and diagnostics['min_ess_bulk'] >= 400 and diagnostics['min_ess_tail'] >= 400
     )
   report = {
-    'mode': args.mode, 'rows': len(actual), 'same_labels': same_labels, 'same_tasks': same_tasks,
+    'mode': args.mode, 'rows': len(actual), 'reference_rows': len(reference), 'shared_rows': len(aligned),
+    'added_labels': sorted(set(actual['image']) - set(reference['image'])),
+    'missing_labels': sorted(set(reference['image']) - set(actual['image'])),
+    'same_labels': same_labels, 'same_tasks': same_tasks,
     'same_order': same_order, 'spearman': rho, 'rmse': rmse, 'max_absolute_difference': maximum,
     'byte_identical': args.ranking.read_bytes() == args.reference.read_bytes(),
     'criteria': {
       'export_max_absolute_difference': 1e-12, 'refit_min_spearman': 0.99, 'refit_max_rmse': 0.02,
       'refit_max_rhat': 1.01, 'refit_min_ess': 400, 'refit_max_divergences': 0,
     },
-    'diagnostics': diagnostics, 'converged': converged,
+    'diagnostics': diagnostics, 'converged': converged, 'numerical_agreement': bool(numerical),
     'passed': bool(same_labels and same_tasks and numerical and converged),
   }
   args.output.parent.mkdir(parents=True, exist_ok=True)

@@ -1,5 +1,9 @@
 # Behavioural complexity estimation
 
+For the subsequent RT provenance findings, successful-trial protocol, and corrected
+CV investigation, see the [revised comparison](../docs/complexity_corrected_protocol.md).
+The reproduction results below describe the earlier historical run.
+
 This component estimates visual-search complexity from human and generated
 scanpaths. COCO-Search18 supports the measurement-model comparisons. Applying the
 selected M2 count model to ScanDiff predictions for NSD produces the complexity
@@ -10,6 +14,14 @@ and records sampling settings and diagnostics. Large datasets, checkpoints, and
 run outputs are external to this repository. The preserved
 [Route B reference](reference/nsd_m2_ranking.csv) contains 12,447 rows across
 16 target categories.
+
+The complete image-generation and fitting run finished on 12 September 2026.
+Saved NSD scanpaths reproduce the preserved ranking exactly. Fresh NSD generation
+changes 27 label memberships, so its final verification fails despite close score
+agreement. COCO count tables largely reproduce; RT tables and several alternative
+models have unresolved historical-result or convergence differences. See the
+[investigation](../docs/complexity_discrepancies.md) for the current evidence and
+the corrected joint-model LOO scoring. Use the preserved reference for Route B.
 
 ## Flow
 
@@ -108,9 +120,10 @@ Commands below run from the repository root.
 This converts saved scanpaths, corrects NSD targets, fits M2, exports the ranking,
 computes variance, and verifies the ranking against the preserved Route B labels.
 Defaults are four chains, 2,000 tuning steps, 2,000 draws, seed 42, and target
-acceptance 0.95. Seed and target acceptance are adopted reproduction settings;
-the chain count, tuning length, retained draws, and main package versions were recovered from the
-historical posterior. NSD does not rerun the COCO model-selection experiment.
+acceptance 0.95. The manuscript specifies this target acceptance and the sampling
+counts; seed 42 is an explicit reproduction choice. Chain count, tuning length,
+retained draws, and main package versions were also recovered from the historical
+posterior. NSD does not rerun the COCO model-selection experiment.
 
 To replay only deterministic stages using an existing posterior:
 
@@ -141,8 +154,28 @@ Figure 4a, matching the recovered plotted result and the author's planned captio
 correction. Other figure comparisons are identified explicitly in `run.py`.
 
 The baseline input follows the author's decision to reproduce the historical
-experiment. New results are saved separately. Smoke tests establish executability,
-not numerical reproduction of all published tables.
+experiment. New results are saved separately. The completed full run establishes
+execution of every suite, with numerical and convergence limits documented in the
+[investigation](../docs/complexity_discrepancies.md).
+
+Joint RT LOO integrates over the model's predicted count with at least 20 Monte
+Carlo samples, restoring the original research entry point's marginal scoring.
+The first full migrated run omitted that preparation step. Its five joint-model
+LOO rows per RT suite are superseded by separate rescoring artifacts; fitted
+posteriors, CV results, and complexity rankings are unaffected by this correction.
+To rescore a completed RT suite without refitting or replacing its artifacts:
+
+```bash
+.venv/bin/python -m complexity.evaluation.rescore_rt_loo \
+  --results-dir /path/to/completed/coco_human_rt \
+  --csv /path/to/its/trials/human.csv \
+  --output-dir /path/to/new/marginal_loo
+```
+
+The scorer verifies the recorded input and scientific source hashes, reuses the
+recorded seed and count-integration setting, and records posterior hashes. Use
+this command for the archived run; normal `--resume` correctly rejects its old
+runner hash after the scoring correction.
 
 Individual suites also expose `--models` for shorter investigations:
 
