@@ -1,9 +1,21 @@
 # Full complexity reproduction, 10 September 2026
 
-The full rerun has been launched. It is not yet a completed reproduction claim.
-Generation, fitting, and verification have separate status files, and numerical
-differences are retained. The earlier NSD refit from saved scanpaths reproduced
-the Route B ranking exactly, as recorded in [validation](complexity_validation.md).
+For the subsequent RT provenance findings, successful-trial protocol, and corrected
+CV investigation, see the [revised comparison](complexity_corrected_protocol.md).
+The reproduction results below describe the earlier historical run.
+
+Updated 14 September 2026: generation, all model fits, LOO, and five-fold CV
+finished on 12 September. After a machine restart, the supervisor repeated the
+final exports and checks on 14 September. Fresh NSD ranking verification failed
+because 14 labels were added and 13 were missing. Execution completion does not
+establish reproduction of all paper results or convergence of every model.
+
+The [discrepancy investigation](complexity_discrepancies.md) records the filter
+mechanism behind those label changes, table comparisons, diagnostic failures,
+and a corrected joint-model LOO migration omission. The original run outputs and
+source snapshot remain unchanged. The earlier NSD refit from saved scanpaths
+still reproduces the Route B ranking exactly, as recorded in
+[validation](complexity_validation.md).
 
 ## Environments and artifacts
 
@@ -69,7 +81,10 @@ inputs in that stream, all 20 scanpath lengths and success flags match; the
 largest coordinate difference is about 0.0011 pixels and the largest total RT
 difference is about 0.00028 milliseconds. Full precision is substantially closer
 to these historical outputs than mixed precision. This sample does not establish
-identity across the complete dataset.
+identity across the complete dataset. The completed comparison subsequently
+confirmed identical fixation lengths and success flags for all 31,010 COCO
+records, with small coordinate and duration differences. See the investigation
+for the full comparison and the different NSD outcome.
 
 The example config records four mixed-precision workers as the default and
 overrides COCO with one float32 worker. `generation.profiles` contains these
@@ -109,7 +124,7 @@ Their decoding errors explain the 52,486 prepared inputs versus 52,481 historica
 outputs. They remain in the sorted partition list and are skipped before any
 diffusion random draws, matching the original error path.
 
-## Running work and automatic continuation
+## Completed work and automatic continuation
 
 | Branch | Work |
 | --- | --- |
@@ -221,7 +236,8 @@ have zero divergences, maximum image-effect R-hat below 1.005, minimum bulk ESS
 above 3,700, and minimum tail ESS above 1,500. Detailed evidence is retained in
 `early_m2/comparison.json` and each suite's diagnostics JSON. These checks use
 saved scanpaths; they do not establish reproduction from regenerated images or
-completion of the full LOO/CV tables.
+agreement of the full LOO/CV tables. Those tables are now complete, with the
+differences and scoring correction documented in the investigation.
 
 ### Published tables
 
@@ -236,12 +252,29 @@ they agree at the printed precision:
   --run "$RUN_ROOT/historical" --output "$RUN_ROOT/historical/paper_comparison"
 ```
 
+That archived root retains the initial joint RT LOO scores. The completed
+14 September rescoring preserves them and supplies corrected scores separately.
+For the current comparison, use the small overlay containing corrected LOO and
+the original CV/count tables:
+
+```bash
+"$RUN_ROOT/venvs/measurement/bin/python" -m complexity.evaluation.compare_paper_tables \
+  --run "$RUN_ROOT/investigation_2026-09-14/corrected_historical" \
+  --output /path/to/new/table-comparison
+```
+
+All 173 cells remain available; 54 match the printed values and 119 differ.
+The [investigation](complexity_discrepancies.md) distinguishes the two small
+human-count differences from the 117 RT table differences and records all
+27 completed RT LOO evaluations, including the 15 corrected joint evaluations.
+
 Missing and non-finite results have explicit statuses. Exact agreement at printed
 precision is a descriptive check, not an assumed guarantee for Monte Carlo fits.
 Rank comparisons retain the existing Figure 4a reference choice, human M2-N,
 matching the author's pending caption correction. The NSD verification retains
 the previously documented label identity, ranking, and sampling criteria.
 
-Five scientific regression tests pass, including the partition schedule and
+Seven scientific regression tests pass, including the partition schedule,
+restored joint marginal LOO scoring, explicit changed-label reporting, and
 reporting of missing, non-finite, and numerically different table results. No
 code-style enforcement tools were installed or added.
