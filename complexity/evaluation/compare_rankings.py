@@ -138,7 +138,7 @@ def compare_rankings(gt_dir: Path, gen_dir: Path, output_dir: Path) -> None:
     print('\nNo shared model files found or no overlapping images to compare.')
 
 if __name__ == '__main__':
-  parser = argparse.ArgumentParser(description='Compare ranking CSVs between Ground Truth and Generated models.')
+  parser = argparse.ArgumentParser(allow_abbrev=False, description='Compare ranking CSVs between Ground Truth and Generated models.')
 
   parser.add_argument(
     '--gt-dir',
@@ -153,7 +153,7 @@ if __name__ == '__main__':
     help='Directory containing Generated ranking CSVs'
   )
   parser.add_argument(
-    '--out-dir',
+    '--output-dir', dest='out_dir',
     type=Path,
     default=Path('ranking_comparisons_gazeformer'),
     help='Directory to save comparison results and plots'

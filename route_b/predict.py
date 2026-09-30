@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Sequence
 import csv
 import json
 import pickle
@@ -64,14 +65,18 @@ def predict(
   return np.concatenate(predictions), np.concatenate(sigmas)
 
 
-def main() -> None:
-  parser = argparse.ArgumentParser(description=__doc__)
-  for name in ('checkpoint', 'pca', 'nsd', 'lh', 'rh', 'tasks', 'clip-text', 'output'):
-    parser.add_argument('--' + name, type=Path, required=True)
+def main(argv: Sequence[str] | None = None) -> None:
+  parser = argparse.ArgumentParser(allow_abbrev=False, description=__doc__)
+  for option, name in (
+    ('checkpoint-file', 'checkpoint'), ('pca-dir', 'pca'), ('nsd-root', 'nsd'),
+    ('lh-file', 'lh'), ('rh-file', 'rh'), ('tasks-file', 'tasks'),
+    ('clip-text-file', 'clip_text'), ('output-file', 'output'),
+  ):
+    parser.add_argument('--' + option, dest=name, type=Path, required=True)
   parser.add_argument('--subject', choices=NSD_SUBJECTS, required=True)
   parser.add_argument('--fold', type=int, default=1)
   parser.add_argument('--device', default='cpu')
-  args = parser.parse_args()
+  args = parser.parse_args(argv)
   tasks = json.loads(args.tasks.read_text())
   values, sigmas = predict(args.checkpoint, args.pca, args.nsd, args.subject, np.load(args.lh), np.load(args.rh), tasks,
                            args.clip_text, args.fold, args.device)

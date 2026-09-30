@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import argparse
+from collections.abc import Sequence
 from pathlib import Path
 
 import torch
@@ -11,7 +13,8 @@ from route_b.features.clip import CLIP_REPOSITORY, CLIP_REVISION
 from route_b.runtime import atomic_json, digest
 
 
-def main() -> None:
+def main(argv: Sequence[str] | None = None) -> None:
+  argparse.ArgumentParser(allow_abbrev=False, description=__doc__).parse_args(argv)
   directory = Path(torch.hub.get_dir()) / 'checkpoints'
   directory.mkdir(parents=True, exist_ok=True)
   destination = directory / 'dinov2_vitl14_pretrain.pth'

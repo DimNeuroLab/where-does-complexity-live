@@ -17,9 +17,9 @@ def digest(path: Path) -> str:
 
 
 def main() -> None:
-  parser = argparse.ArgumentParser(description=__doc__)
+  parser = argparse.ArgumentParser(allow_abbrev=False, description=__doc__)
   parser.add_argument('--results-dir', type=Path, required=True)
-  parser.add_argument('--csv', type=Path, required=True)
+  parser.add_argument('--trials-file', dest='csv', type=Path, required=True)
   parser.add_argument('--output-dir', type=Path, required=True)
   args = parser.parse_args()
   if args.output_dir.resolve() == args.results_dir.resolve():

@@ -16,10 +16,10 @@ def indexed(path: Path) -> dict[tuple[str, str, int], dict[str, Any]]:
 
 
 def main() -> None:
-  parser = argparse.ArgumentParser(description=__doc__)
-  parser.add_argument('--generated', type=Path, required=True)
-  parser.add_argument('--reference', type=Path, required=True)
-  parser.add_argument('--output', type=Path, required=True)
+  parser = argparse.ArgumentParser(allow_abbrev=False, description=__doc__)
+  parser.add_argument('--generated-file', dest='generated', type=Path, required=True)
+  parser.add_argument('--reference-file', dest='reference', type=Path, required=True)
+  parser.add_argument('--output-file', dest='output', type=Path, required=True)
   args = parser.parse_args()
   current = indexed(args.generated)
   original = indexed(args.reference)

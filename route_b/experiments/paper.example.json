@@ -1,8 +1,7 @@
 {
   "inputs": {
-    "nsd": "${NSD_DATA}"
+    "nsd_root": "${NSD_DATA}"
   },
-  "output": "${ROUTE_B_OUTPUT}",
   "devices": [
     0
   ],
@@ -24,7 +23,7 @@
     "patience": 15,
     "freeze_encoder_epochs": 100,
     "aux_weight": 0.0,
-    "n_folds": 5
+    "cv_folds": 5
   },
-  "dino_repository": "${DINOV2_ROOT}"
+  "output_dir": "${ROUTE_B_OUTPUT}"
 }

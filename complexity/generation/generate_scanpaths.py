@@ -169,20 +169,20 @@ def partition_images(images: list[Path], workers: int) -> list[list[Path]]:
 
 
 def main() -> None:
-  parser = argparse.ArgumentParser(description=__doc__)
+  parser = argparse.ArgumentParser(allow_abbrev=False, description=__doc__)
   parser.add_argument('--scandiff-root', type=Path, required=True)
-  parser.add_argument('--images', type=Path, required=True)
-  parser.add_argument('--bboxes', type=Path, required=True)
-  parser.add_argument('--output', type=Path, required=True)
-  parser.add_argument('--checkpoint', type=Path)
-  parser.add_argument('--task-embeddings', type=Path)
+  parser.add_argument('--images-dir', dest='images', type=Path, required=True)
+  parser.add_argument('--bboxes-file', dest='bboxes', type=Path, required=True)
+  parser.add_argument('--output-dir', dest='output', type=Path, required=True)
+  parser.add_argument('--checkpoint-file', dest='checkpoint', type=Path)
+  parser.add_argument('--task-embeddings-file', dest='task_embeddings', type=Path)
   parser.add_argument('--device', default='cuda:0', help='Device for single-worker inference.')
   parser.add_argument('--devices', nargs='+', help='One device per logical worker; repeated devices are allowed.')
   parser.add_argument('--precision', choices=['amp', 'float32'], default='amp')
   parser.add_argument('--seed', type=int, default=1000, help='Base seed; worker k uses seed + k.')
   parser.add_argument('--limit', type=int, help='Limit input images before partitioning, for testing.')
   parser.add_argument('--resume', action='store_true')
-  parser.add_argument('--worker-input', type=Path, help=argparse.SUPPRESS)
+  parser.add_argument('--worker-input-file', dest='worker_input', type=Path, help=argparse.SUPPRESS)
   args = parser.parse_args()
   if args.worker_input:
     generate_partition(args, [Path(path) for path in json.loads(args.worker_input.read_text())])
@@ -227,11 +227,11 @@ def main() -> None:
         continue
       command = [
         sys.executable, str(Path(__file__).resolve()), '--scandiff-root', str(args.scandiff_root),
-        '--images', str(args.images), '--bboxes', str(args.bboxes), '--output', str(worker_output),
-        '--device', device, '--seed', str(args.seed + index), '--worker-input', str(input_path),
+        '--images-dir', str(args.images), '--bboxes-file', str(args.bboxes), '--output-dir', str(worker_output),
+        '--device', device, '--seed', str(args.seed + index), '--worker-input-file', str(input_path),
         '--precision', args.precision,
       ]
-      for option, value in [('--checkpoint', args.checkpoint), ('--task-embeddings', args.task_embeddings)]:
+      for option, value in [('--checkpoint-file', args.checkpoint), ('--task-embeddings-file', args.task_embeddings)]:
         if value:
           command += [option, str(value)]
       if args.resume:

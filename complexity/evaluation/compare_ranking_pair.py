@@ -125,28 +125,28 @@ def compare_two_rankings(file1: Path, file2: Path, output_dir: Path, label1: str
   print(f"Summary saved to {summary_path}")
 
 if __name__ == '__main__':
-  parser = argparse.ArgumentParser(description='Compare two specific ranking CSV files.')
+  parser = argparse.ArgumentParser(allow_abbrev=False, description='Compare two specific ranking CSV files.')
 
   parser.add_argument(
-    '--file1',
+    '--left-file', dest='file1',
     type=Path,
     required=True,
     help='Path to first ranking CSV'
   )
   parser.add_argument(
-    '--file2',
+    '--right-file', dest='file2',
     type=Path,
     required=True,
     help='Path to second ranking CSV'
   )
   parser.add_argument(
-    '--out-dir',
+    '--output-dir', dest='out_dir',
     type=Path,
     default=Path('comparison_results'),
     help='Directory to save comparison results and plots'
   )
-  parser.add_argument('--label1', type=str, default='File 1', help='Label for x-axis')
-  parser.add_argument('--label2', type=str, default='File 2', help='Label for y-axis')
+  parser.add_argument('--left-label', dest='label1', type=str, default='File 1', help='Label for x-axis')
+  parser.add_argument('--right-label', dest='label2', type=str, default='File 2', help='Label for y-axis')
 
   args = parser.parse_args()
 

@@ -29,9 +29,9 @@ def select_trials(source: Path, output: Path) -> dict[str, int]:
 
 
 def main() -> None:
-  parser = argparse.ArgumentParser(description=__doc__)
-  parser.add_argument('--csv', type=Path, required=True)
-  parser.add_argument('--output', type=Path, required=True)
+  parser = argparse.ArgumentParser(allow_abbrev=False, description=__doc__)
+  parser.add_argument('--trials-file', dest='csv', type=Path, required=True)
+  parser.add_argument('--output-file', dest='output', type=Path, required=True)
   args = parser.parse_args()
   print(json.dumps(select_trials(args.csv, args.output), indent=2))
 

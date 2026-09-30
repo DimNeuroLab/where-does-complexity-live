@@ -21,11 +21,11 @@ _COMMANDS = ('extract-features', 'train', 'evaluate-global', 'evaluate-per-subje
 
 
 def _extract_features_parser() -> argparse.ArgumentParser:
-  parser = argparse.ArgumentParser(description='Extract and cache DINOv2 and CLIP embeddings.')
+  parser = argparse.ArgumentParser(allow_abbrev=False, description='Extract and cache DINOv2 and CLIP embeddings.')
   parser.add_argument('--nsd-root', type=Path, required=True, help='Root of the NSD/Algonauts-2023 data tree.')
   parser.add_argument('--dino-dir', type=Path, required=True, help='Output directory for DINO features.')
-  parser.add_argument('--clip-img-dir', type=Path, required=True, help='Output directory for CLIP image features.')
-  parser.add_argument('--clip-text-path', type=Path, required=True, help='Output path for CLIP text embeddings.')
+  parser.add_argument('--clip-image-dir', dest='clip_img_dir', type=Path, required=True, help='Output directory for CLIP image features.')
+  parser.add_argument('--clip-text-file', dest='clip_text_path', type=Path, required=True, help='Output path for CLIP text embeddings.')
   parser.add_argument('--subjects', nargs='+', default=None, help='Defaults to all 8 NSD subjects.')
   parser.add_argument('--batch-size', type=int, default=64)
   parser.add_argument('--skip-dino', action='store_true')

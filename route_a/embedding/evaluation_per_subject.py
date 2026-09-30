@@ -203,9 +203,9 @@ def evaluate_kfold_per_subject(
 
 
 def build_parser() -> argparse.ArgumentParser:
-  parser = argparse.ArgumentParser(description='Per-subject evaluation of the embedding-conditioned complexity model.')
+  parser = argparse.ArgumentParser(allow_abbrev=False, description='Per-subject evaluation of the embedding-conditioned complexity model.')
   add_common_arguments(parser)
-  parser.add_argument('--out', type=Path, required=True, help='Output directory for metrics JSON and figures.')
+  parser.add_argument('--output-dir', dest='out', type=Path, required=True, help='Output directory for metrics JSON and figures.')
   parser.add_argument(
     '--checkpoint-glob', required=True,
     help="Glob matching one condition's fold checkpoints, for example "

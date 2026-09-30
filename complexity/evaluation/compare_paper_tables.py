@@ -55,10 +55,10 @@ def compare(run: Path, reference: Path, tables: list[str] | None = None) -> list
 
 
 def main() -> None:
-  parser = argparse.ArgumentParser(description=__doc__)
-  parser.add_argument('--run', type=Path, required=True)
-  parser.add_argument('--reference', type=Path, default=Path(__file__).resolve().parents[1] / 'reference/paper_tables.csv')
-  parser.add_argument('--output', type=Path, required=True)
+  parser = argparse.ArgumentParser(allow_abbrev=False, description=__doc__)
+  parser.add_argument('--results-dir', dest='run', type=Path, required=True)
+  parser.add_argument('--reference-file', dest='reference', type=Path, default=Path(__file__).resolve().parents[1] / 'reference/paper_tables.csv')
+  parser.add_argument('--output-dir', dest='output', type=Path, required=True)
   parser.add_argument('--tables', nargs='+', help='Compare only the named paper tables, such as 1 A1.')
   args = parser.parse_args()
   rows = compare(args.run, args.reference, args.tables)

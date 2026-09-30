@@ -10,26 +10,23 @@ from typing import NotRequired, TypedDict
 
 
 class Inputs(TypedDict):
-  nsd: str
-  features: str
-  reference_pca: NotRequired[str]
-  reference_checkpoints: NotRequired[str]
-  pca: NotRequired[str]
-  checkpoints: NotRequired[str]
-  pca_models: NotRequired[str]
-  ranking: str
+  nsd_root: NotRequired[str]
+  features_dir: NotRequired[str]
+  pca_dir: NotRequired[str]
+  checkpoints_dir: NotRequired[str]
+  pca_models_dir: NotRequired[str]
+  ranking_file: NotRequired[str]
 
 
 class RunConfig(TypedDict):
   inputs: Inputs
-  output: str
+  output_dir: str
   devices: list[int]
   gpu_hours: float
   cpu_threads: int
-  original_repository: NotRequired[str]
-  dino_repository: NotRequired[str]
-  encoder: EncoderSettings
-  head: HeadSettings
+  dino_root: NotRequired[str]
+  encoder: NotRequired[EncoderSettings]
+  head: NotRequired[HeadSettings]
 
 
 class EncoderSettings(TypedDict):
@@ -49,14 +46,14 @@ class HeadSettings(TypedDict):
   patience: int
   freeze_encoder_epochs: int
   aux_weight: float
-  n_folds: int
+  cv_folds: int
 
 
 @dataclass(frozen=True)
 class Paths:
   """Resolved locations for one invocation, with shared inputs kept external."""
 
-  nsd: Path
+  nsd: Path | None
   dino: Path
   clip_image: Path
   clip_text: Path
@@ -71,52 +68,93 @@ class Paths:
 _paths: Paths | None = None
 
 
-def read_config(filename: Path) -> RunConfig:
-  """Read a JSON configuration and reject missing input or run fields."""
+def configured_path(value: str, base: Path) -> str:
+  """Expand a configured path relative to the JSON file, independently of cwd."""
+  if not value:
+    raise ValueError('Configured paths must not be empty')
+  expanded = os.path.expandvars(value)
+  if '$' in expanded:
+    raise ValueError(f'Undefined environment variable in configured path: {value}')
+  path = Path(expanded).expanduser()
+  return str((path if path.is_absolute() else base / path).resolve())
+
+
+def read_config(filename: Path, stages: tuple[str, ...] | None = None) -> RunConfig:
+  """Read normalized settings and require only paths used by selected stages."""
   config: RunConfig = json.loads(filename.read_text())
+  selected = set(stages) if stages is not None else {
+    'features', 'prepare', 'pretrain', 'train', 'evaluate', 'sweep', 'variance'
+  }
+  if 'sweep' in selected:
+    selected.update(('pretrain', 'train', 'evaluate'))
+  allowed = {'inputs', 'output_dir', 'devices', 'gpu_hours', 'cpu_threads', 'dino_root', 'encoder', 'head'}
+  if unknown := config.keys() - allowed:
+    raise ValueError(f'Unknown configuration fields: {sorted(unknown)}')
+  inputs = config.setdefault('inputs', {})
+  if unknown := inputs.keys() - Inputs.__annotations__.keys():
+    raise ValueError(f'Unknown input fields: {sorted(unknown)}')
+  if 'n_folds' in config.get('head', {}):
+    raise ValueError('Use head.cv_folds for the cross-validation fold count')
+  base = filename.resolve().parent
   config.setdefault('devices', [0])
   config.setdefault('cpu_threads', 8)
   config.setdefault('gpu_hours', 72)
-  config['output'] = str(Path(os.path.expandvars(config['output'])).expanduser().resolve())
-  if '$' in config['output']:
-    raise ValueError('Define the output environment variable or supply an explicit path')
-  config['inputs'].setdefault('features', str(Path(config['output']) / 'features'))
-  config['inputs'].setdefault('ranking', str(Path(__file__).resolve().parents[1] / 'complexity/nsd_m2_ranking.csv'))
-  for key, value in config['inputs'].items():
-    if '$' in os.path.expandvars(value):
-      raise ValueError(f'Undefined environment variable in input {key}: {value}')
-    config['inputs'][key] = str(Path(os.path.expandvars(value)).expanduser().resolve())
-  for key in ('nsd', 'features', 'ranking'):
-    if not config['inputs'].get(key):
-      raise ValueError(f'Missing input: {key}')
+  config['output_dir'] = configured_path(config['output_dir'], base)
+  inputs.setdefault('features_dir', str(Path(config['output_dir']) / 'features'))
+  inputs.setdefault('ranking_file', str(Path(__file__).resolve().parents[1] / 'complexity/nsd_m2_ranking.csv'))
+  required = {'nsd_root'} if selected - {'text'} else set()
+  if selected & {'pretrain', 'train', 'evaluate', 'variance', 'prepare', 'transform'}:
+    required.add('ranking_file')
+  for key in required:
+    if not inputs.get(key):
+      raise ValueError(f'Missing input for selected stages: {key}')
+  for key, value in list(inputs.items()):
+    try:
+      inputs[key] = configured_path(value, base)
+    except ValueError:
+      used = key in required or (
+        key == 'features_dir' and bool(selected & {'features', 'text', 'pretrain', 'train', 'evaluate', 'variance'})
+      ) or (key in {'pca_dir', 'checkpoints_dir'} and bool(selected - {'text', 'features'})) or (
+        key == 'pca_models_dir' and 'transform' in selected
+      )
+      if used:
+        raise
+      del inputs[key]
   if config['gpu_hours'] <= 0 or not config['devices'] or len(set(config['devices'])) != len(config['devices']):
     raise ValueError('GPU hours must be positive and devices must be nonempty and unique')
-  if config['head']['n_folds'] != 5:
+  if 'head' in config and config['head']['cv_folds'] != 5:
     raise ValueError('The paper reproduction requires five folds')
-  if '$' in os.path.expandvars(config.get('dino_repository', '')):
-    raise ValueError('Define DINOV2_ROOT or omit dino_repository to use the pinned Torch Hub revision')
+  if config.get('dino_root'):
+    try:
+      config['dino_root'] = configured_path(config['dino_root'], base)
+    except ValueError:
+      if 'features' in selected:
+        raise
+      del config['dino_root']
   return config
 
 
-def configure(filename: Path, reference: bool = False) -> RunConfig:
-  """Select original or newly fitted PCA/checkpoints before importing data modules."""
+def configure(filename: Path, stages: tuple[str, ...] | None = None) -> RunConfig:
+  """Resolve external inputs separately from writable run products."""
   global _paths
-  config = read_config(filename)
+  config = read_config(filename, stages)
   inputs = config['inputs']
-  output = Path(config['output']).expanduser().resolve()
-  features = Path(inputs['features']).expanduser().resolve()
+  output = Path(config['output_dir'])
+  features = Path(inputs.get('features_dir', output / 'features'))
   _paths = Paths(
-    nsd=Path(inputs['nsd']).expanduser().resolve(), dino=features / 'dino',
-    clip_image=features / 'clip_image', clip_text=features / 'clip_text',
-    pca=Path(inputs['reference_pca']) if reference else Path(inputs.get('pca', output / 'pca')),
-    checkpoints=(Path(inputs['reference_checkpoints']) if reference
-                 else Path(inputs.get('checkpoints', output / 'checkpoints'))),
-    ranking=Path(inputs['ranking']).expanduser().resolve(), output=output,
-    dino_repository=os.path.expandvars(config.get('dino_repository', '')),
-    pca_models=Path(inputs['pca_models']) if 'pca_models' in inputs else None,
+    nsd=Path(inputs['nsd_root']) if 'nsd_root' in inputs else None,
+    dino=features / 'dino', clip_image=features / 'clip_image', clip_text=features / 'clip_text',
+    pca=Path(inputs.get('pca_dir', output / 'pca')),
+    checkpoints=Path(inputs.get('checkpoints_dir', output / 'checkpoints')),
+    ranking=Path(inputs['ranking_file']), output=output,
+    dino_repository=config.get('dino_root', ''),
+    pca_models=Path(inputs['pca_models_dir']) if 'pca_models_dir' in inputs else None,
   )
-  protected = [_paths.nsd, _paths.ranking]
-  protected.extend(Path(inputs[key]) for key in ('reference_pca', 'reference_checkpoints') if key in inputs)
+  protected = [_paths.ranking]
+  if _paths.nsd is not None:
+    protected.append(_paths.nsd)
+  if _paths.pca_models is not None:
+    protected.append(_paths.pca_models)
   protected.extend(location for location in (features, _paths.pca, _paths.checkpoints)
                    if not location.is_relative_to(output))
   if any(output == location or output.is_relative_to(location) or location.is_relative_to(output) for location in protected):

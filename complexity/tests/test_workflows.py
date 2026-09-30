@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -31,14 +32,14 @@ class WorkflowTests(unittest.TestCase):
     with tempfile.TemporaryDirectory() as directory:
       root = Path(directory)
       calls = self.invoke(root, 'coco-rt-tables', inputs={
-        'coco_scanpaths': str(root / 'scanpaths.json'), 'human_scanpaths': '${UNUSED_HUMAN}',
-        'nsd_metadata': '${UNUSED_NSD}',
+        'coco_scanpaths_file': str(root / 'scanpaths.json'), 'human_scanpaths_file': '${UNUSED_HUMAN}',
+        'nsd_metadata_file': '${UNUSED_NSD}',
       })
       self.assertEqual([call.args[0] for call in calls], [
         'complexity.preprocessing.convert_scanpaths', 'complexity.models.fit_response_time',
         'complexity.exports.export_rankings', 'complexity.evaluation.compare_paper_tables',
       ])
-      self.assertNotIn('--only_correct', calls[0].args[1])
+      self.assertNotIn('--only-correct', calls[0].args[1])
       self.assertIn(str(root / 'output/trials/coco_unfiltered.csv'), calls[0].args[1])
       self.assertIn(str(root / 'output/coco_unfiltered_rt'), calls[1].args[1])
       self.assertEqual(calls[-1].args[1][2:5], ['--tables', '1', 'A1'])
@@ -47,13 +48,13 @@ class WorkflowTests(unittest.TestCase):
     with tempfile.TemporaryDirectory() as directory:
       root = Path(directory)
       calls = self.invoke(root, 'all', ['prepare'], inputs={
-        key: str(root / key) for key in ['coco_scanpaths', 'human_scanpaths', 'nsd_scanpaths', 'nsd_metadata']
+        key: str(root / key) for key in ['coco_scanpaths_file', 'human_scanpaths_file', 'nsd_scanpaths_file', 'nsd_metadata_file']
       })
       conversions = [call.args[1] for call in calls if call.args[0].endswith('.convert_scanpaths')]
       self.assertEqual(len(conversions), 3)
-      self.assertNotIn('--only_correct', conversions[0])
+      self.assertNotIn('--only-correct', conversions[0])
       for argv in conversions[1:]:
-        self.assertEqual(argv[-2:], ['--only_correct', '1'])
+        self.assertEqual(argv[-2:], ['--only-correct', '1'])
       self.assertTrue(any(call.args[0].endswith('.select_coco_trials') for call in calls))
       self.assertFalse(any('coco_unfiltered' in str(call) for call in calls))
 
@@ -65,7 +66,7 @@ class WorkflowTests(unittest.TestCase):
 
   def test_invalid_rt_stage_or_missing_input_fails_before_output_creation(self) -> None:
     for stages, inputs in [(['variance'], {}), (['prepare'], {}),
-                           (['prepare'], {'coco_scanpaths': '${MISSING_SCANPATHS}'})]:
+                           (['prepare'], {'coco_scanpaths_file': '${MISSING_SCANPATHS}'})]:
       with self.subTest(stages=stages, inputs=inputs), tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         with self.assertRaises(SystemExit) as error:
@@ -77,12 +78,12 @@ class WorkflowTests(unittest.TestCase):
     with tempfile.TemporaryDirectory() as directory:
       root = Path(directory)
       calls = self.invoke(root, 'coco-rt-tables', ['generate', 'prepare'],
-        inputs={'coco_images': str(root / 'images'), 'coco_bboxes': str(root / 'boxes.json')},
-        generation={'checkout': str(root / 'scandiff'), 'python': sys.executable,
+        inputs={'coco_images_dir': str(root / 'images'), 'coco_bboxes_file': str(root / 'boxes.json')},
+        generation={'scandiff_root': str(root / 'scandiff'), 'python_file': sys.executable,
                     'profiles': {'coco': {'precision': 'float32', 'devices': ['cuda:0']}}})
       self.assertIn('float32', calls[0].args[1])
       self.assertIn(str(root / 'output/scanpaths/coco/all_scanpaths.json'), calls[1].args[1])
-      self.assertNotIn('--only_correct', calls[1].args[1])
+      self.assertNotIn('--only-correct', calls[1].args[1])
 
   def test_rt_preparation_keeps_failed_and_unknown_target_present_trials(self) -> None:
     with tempfile.TemporaryDirectory() as directory:
@@ -93,8 +94,8 @@ class WorkflowTests(unittest.TestCase):
       source.write_text(json.dumps([dict(base, correct=flag) for flag in [0, 1, None]]
                                    + [dict(base, condition='absent', correct=1)]))
       config = root / 'config.json'
-      config.write_text(json.dumps({'output_dir': str(root / 'output'), 'inputs': {'coco_scanpaths': str(source)}}))
-      result = subprocess.run([sys.executable, '-m', 'complexity.run', '--config', str(config),
+      config.write_text(json.dumps({'output_dir': str(root / 'output'), 'inputs': {'coco_scanpaths_file': str(source)}}))
+      result = subprocess.run([sys.executable, '-m', 'complexity', 'run', '--config', str(config),
                                '--profile', 'coco-rt-tables', '--stages', 'prepare'], capture_output=True, text=True)
       self.assertEqual(result.returncode, 0, result.stderr)
       with (root / 'output/trials/coco_unfiltered.csv').open() as stream:
@@ -111,6 +112,43 @@ class WorkflowTests(unittest.TestCase):
       self.assertEqual({row['status'] for row in rows}, {'missing'})
       with self.assertRaisesRegex(ValueError, 'Unknown paper tables'):
         compare(Path(directory), reference, ['unknown'])
+
+  def test_configuration_paths_are_independent_of_launch_directory(self) -> None:
+    with tempfile.TemporaryDirectory() as directory:
+      root = Path(directory)
+      settings = root / 'settings'
+      settings.mkdir()
+      (settings / 'trials.json').write_text('[{"name": "image.png", "subject": 1, "condition": "present", '
+                                          '"RT": 200, "X": [0, 1], "Y": [0, 1], "T": [100, 100]}]')
+      filename = settings / 'run.json'
+      filename.write_text(json.dumps({'output_dir': 'output', 'inputs': {'coco_scanpaths_file': 'trials.json'}}))
+      command = [sys.executable, '-m', 'complexity', 'run', '--config', str(filename),
+                 '--profile', 'coco-rt-tables', '--stages', 'prepare']
+      environment = dict(os.environ, PYTHONPATH=str(Path(run.__file__).resolve().parents[1]))
+      previous = None
+      for cwd in (root, settings):
+        result = subprocess.run(command, cwd=cwd, env=environment, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        current = (settings / 'output/trials/coco_unfiltered.csv').read_bytes()
+        if previous is not None:
+          self.assertEqual(previous, current)
+        previous = current
+      self.assertFalse((root / 'output').exists())
+      record = json.loads((settings / 'output/last_run.json').read_text())
+      self.assertEqual(record['config']['inputs']['coco_scanpaths_file'], str(settings / 'trials.json'))
+
+  def test_sampling_fold_option_reaches_model_runner(self) -> None:
+    with tempfile.TemporaryDirectory() as directory:
+      calls = self.invoke(Path(directory), 'coco-rt-tables', ['fit'], sampling={'cv_folds': 3})
+      self.assertEqual(calls[0].args[1][-2:], ['--cv-folds', '3'])
+
+  def test_canonical_dispatch_and_old_option_rejection(self) -> None:
+    from complexity.__main__ import main
+    with patch.object(run, 'main') as entry:
+      self.assertEqual(main(['run', '--config', 'settings.json']), 0)
+      entry.assert_called_once_with(['--config', 'settings.json'])
+    with self.assertRaises(SystemExit):
+      run.main(['--config', 'missing.json', '--posterior', 'posterior.nc'])
 
 
 if __name__ == '__main__':

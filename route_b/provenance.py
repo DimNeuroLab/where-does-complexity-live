@@ -35,6 +35,10 @@ def input_files(stage: str) -> list[Path]:
   """Identify data dependencies without requiring artifacts of unrelated stages."""
   from route_b.constants import NSD_SUBJECTS
   p = paths()
+  if stage == 'text':
+    return []
+  if p.nsd is None:
+    raise ValueError('An NSD root is required for this stage')
   files = [p.ranking]
   for subject in NSD_SUBJECTS:
     base = p.nsd / subject

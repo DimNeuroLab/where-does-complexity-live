@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Sequence
 import fcntl
 import json
 import os
@@ -26,7 +27,7 @@ def execute(stage: str, weight: float, config_path: Path) -> list[Path]:
   import numpy as np
   import torch
   from route_b.runtime import atomic_json
-  config = configure(config_path)
+  config = configure(config_path, (stage,))
   p = paths()
   write_locations = {
     'features': [p.dino, p.clip_image, p.clip_text], 'text': [p.clip_text],
@@ -82,7 +83,8 @@ def execute(stage: str, weight: float, config_path: Path) -> list[Path]:
     return [p.checkpoints / 'feature_decoder' / f'{stem}.pt']
   if stage == 'train':
     from route_b.training.complexity import train_complexity_model
-    train_complexity_model(**config['head'], run_name=stem,
+    head_settings = {key: value for key, value in config['head'].items() if key != 'cv_folds'}
+    train_complexity_model(**head_settings, n_folds=config['head']['cv_folds'], run_name=stem,
       pretrained_path=p.checkpoints / 'feature_decoder' / f'{stem}.pt',
       gpus=list(range(len(config['devices']))), recovery_root=p.output / 'recovery/head')
     return [p.checkpoints / 'complexity' / f'{stem}.pt']
@@ -106,7 +108,7 @@ def execute(stage: str, weight: float, config_path: Path) -> list[Path]:
 def worker(args: argparse.Namespace) -> None:
   from route_b import runtime
   from route_b.provenance import fingerprints, input_files, verify_files
-  config = configure(args.config)
+  config = configure(args.config, (args.worker,) if args.worker else tuple(args.stages))
   root = paths().output
   name = f'{args.worker}_{args.weight:g}'
   inputs = root / 'inputs' / f'{name}.json'
@@ -137,8 +139,8 @@ def worker(args: argparse.Namespace) -> None:
       budget.close()
 
 
-def main() -> None:
-  parser = argparse.ArgumentParser(description=__doc__)
+def main(argv: Sequence[str] | None = None) -> None:
+  parser = argparse.ArgumentParser(allow_abbrev=False, description=__doc__)
   parser.add_argument('--config', type=Path, required=True)
   parser.add_argument('--stages', nargs='+', choices=STAGES,
                       default=['features', 'prepare', 'pretrain', 'train', 'evaluate', 'sweep', 'variance'])
@@ -146,9 +148,9 @@ def main() -> None:
   parser.add_argument('--initialize-only', action='store_true')
   parser.add_argument('--weight', type=float, choices=[0., .25, .5, .75, 1.], default=1.)
   parser.add_argument('--worker', choices=STAGES, help=argparse.SUPPRESS)
-  args = parser.parse_args()
+  args = parser.parse_args(argv)
   args.config = args.config.resolve()
-  config = configure(args.config)
+  config = configure(args.config, (args.worker,) if args.worker else tuple(args.stages))
   if args.worker:
     worker(args)
     return
@@ -182,7 +184,7 @@ def main() -> None:
       logs = root / 'logs'
       logs.mkdir(exist_ok=True)
       with (logs / f'{stage}_{weight:g}.log').open('a') as stream:
-        code = subprocess.call([sys.executable, '-u', '-m', 'route_b.run', '--config', str(args.config),
+        code = subprocess.call([sys.executable, '-u', '-m', 'route_b', 'run', '--config', str(args.config),
                                 '--worker', stage, '--weight', str(weight)], env=env,
                                stdout=stream, stderr=subprocess.STDOUT)
       if code:
@@ -190,7 +192,7 @@ def main() -> None:
         raise SystemExit(code)
     from route_b.evaluation.reproduction import report
     if (root / 'results').exists():
-      report(root, run_label='Saved checkpoint' if 'checkpoints' in config['inputs'] else 'Fresh training')
+      report(root, run_label='Saved checkpoint' if 'checkpoints_dir' in config['inputs'] else 'Fresh training')
     atomic_json(root / 'status.json', {'state': 'complete', 'time': time.time(), 'stages': args.stages})
 
 

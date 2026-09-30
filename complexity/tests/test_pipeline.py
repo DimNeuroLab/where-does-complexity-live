@@ -78,9 +78,9 @@ class PipelineTests(unittest.TestCase):
         'divergences': 0, 'max_rhat': 1., 'min_ess_bulk': 500, 'min_ess_tail': 500,
       }))
       result = subprocess.run([
-        sys.executable, '-m', 'complexity.evaluation.verify_ranking', '--ranking', str(root / 'actual.csv'),
-        '--reference', str(root / 'reference.csv'), '--output', str(root / 'report.json'), '--mode', 'refit',
-        '--diagnostics', str(root / 'diagnostics.json'),
+        sys.executable, '-m', 'complexity.evaluation.verify_ranking', '--ranking-file', str(root / 'actual.csv'),
+        '--reference-file', str(root / 'reference.csv'), '--output-file', str(root / 'report.json'), '--mode', 'refit',
+        '--diagnostics-file', str(root / 'diagnostics.json'),
       ], capture_output=True, text=True)
       self.assertEqual(result.returncode, 1, result.stderr)
       report = json.loads((root / 'report.json').read_text())
