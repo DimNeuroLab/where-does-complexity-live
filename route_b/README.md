@@ -84,7 +84,7 @@ consequences of those choices.
 
 Required research inputs are the NSD/Algonauts 2023 images, subject fMRI arrays,
 visual-stream ROI masks, the preserved
-[`nsd_m2_ranking.csv`](../complexity/reference/nsd_m2_ranking.csv), and the
+[`nsd_m2_ranking.csv`](../complexity/nsd_m2_ranking.csv), and the
 DINOv2 and CLIP pretrained weights. Derived PCA models, feature arrays, and
 Route B checkpoints remain external data artifacts.
 

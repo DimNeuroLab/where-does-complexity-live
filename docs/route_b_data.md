@@ -11,7 +11,7 @@ Images, fMRI responses, and extracted image or text embeddings are not redistrib
 | Natural Scenes Dataset (NSD) | [Project and data access](https://www.naturalscenesdataset.org/) | Original source of the eight subjects' brain responses and image identities. Follow the project's data access agreement. |
 | Algonauts Project 2023 | [Challenge data download and format](https://algonautsproject.com/2023/challenge.html#challenge-data), [official tutorial](https://github.com/gifale95/algonauts_2023) | The specific packaged images, hemisphere arrays, and stream ROI masks consumed by this code. |
 | MS-COCO | [Dataset](https://cocodataset.org/#download) | Source images underlying NSD. Use the challenge's cropped PNGs for Route B extraction. |
-| Complexity labels | [Preserved ranking](../complexity/reference/nsd_m2_ranking.csv) | Fixed image-target supervision supplied by the separate complexity component. |
+| Complexity labels | [Preserved ranking](../complexity/nsd_m2_ranking.csv) | Fixed image-target supervision supplied by the separate complexity component. |
 
 Downloading raw NSD alone does not create the expected Algonauts directory layout.
 Use the 2023 challenge package. Its hemisphere arrays are already standardized

@@ -27,6 +27,9 @@ class PublicPipelineTests(unittest.TestCase):
       with patch.object(config, '_paths', None):
         loaded = configure(filename)
         self.assertNotIn('original_repository', loaded)
+        self.assertEqual(config.paths().ranking.name, 'nsd_m2_ranking.csv')
+        self.assertEqual(config.paths().ranking.parent.name, 'complexity')
+        self.assertTrue(config.paths().ranking.is_file())
         self.assertEqual(config.paths().dino, root / 'run/features/dino')
         self.assertEqual(config.paths().pca, root / 'run/pca')
       self.assertFalse((root / 'run').exists())

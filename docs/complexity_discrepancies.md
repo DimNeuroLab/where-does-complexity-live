@@ -11,7 +11,7 @@ ScanDiff predictions. The original run outputs and posterior files are preserved
 
 ## NSD labels and the Route B reference
 
-The preserved [ranking](../complexity/reference/nsd_m2_ranking.csv) remains the
+The preserved [ranking](../complexity/nsd_m2_ranking.csv) remains the
 reference for Route B: 12,447 image-target filenames across 16 target categories.
 Its SHA256 is:
 

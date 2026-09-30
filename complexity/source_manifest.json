@@ -66,7 +66,7 @@
     },
     {
       "source": "difficulty_rankings_nsd_no_knife/full_ranking_M2_n_studentT.csv",
-      "destination": "reference/nsd_m2_ranking.csv",
+      "destination": "nsd_m2_ranking.csv",
       "source_project": "complexity",
       "source_sha256": "2101a2143b00da45625afeaeda08880c70761f825efb0a7c17769624c0a0e6fb",
       "current_sha256": "2101a2143b00da45625afeaeda08880c70761f825efb0a7c17769624c0a0e6fb"
