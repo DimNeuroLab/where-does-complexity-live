@@ -138,11 +138,6 @@ def worker(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
-  if '--verify-original' in sys.argv:
-    sys.argv.remove('--verify-original')
-    from route_b.development.replay import main as replay
-    replay()
-    return
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument('--config', type=Path, required=True)
   parser.add_argument('--stages', nargs='+', choices=STAGES,
