@@ -1,301 +1,185 @@
 # Behavioural complexity estimation
 
-This component estimates visual-search complexity from human and generated
-scanpaths. COCO-Search18 supports the measurement-model comparisons. Applying the
-selected M2 count model to ScanDiff predictions for NSD produces the complexity
-labels consumed by Routes A and B.
+## Purpose and paper mapping
 
-The pipeline accepts explicit data paths, runs the complete model registries,
-and records sampling settings and diagnostics. Large datasets, checkpoints, and
-run outputs are external to this repository. The preserved
-[Route B reference](nsd_m2_ranking.csv) contains 12,447 rows across
-16 target categories.
+This component estimates visual-search difficulty from response times and eye movements. COCO workflows
+support Tables 1-3 and A1 and ranking comparisons in Figures 3-4. The NSD M2 count workflow supplies the
+image-target labels used by Routes A and B and the label-side variance analysis.
 
-The complete image-generation and fitting run finished on 12 September 2026.
-Saved NSD scanpaths reproduce the preserved ranking exactly. Fresh NSD generation
-changes 27 label memberships, so its final verification fails despite close score
-agreement. COCO count tables largely reproduce; RT tables and several alternative
-models have unresolved historical-result or convergence differences. See the
-[investigation](../docs/complexity_discrepancies.md) for the current evidence and
-the corrected joint-model LOO scoring. Use the preserved reference for Route B.
+## Workflow
 
-## Flow
-
-```mermaid
-flowchart TD
-  H["COCO human scanpaths"] --> HC["Convert trials: RT, N, observer, image, target"]
-  HC --> HF["Keep target-present images with at least one target-box fixation"]
-  HF --> HM["Human RT, count, and joint model suites"]
-  CI["COCO images and search targets"] --> CG["ScanDiff visual-search inference"]
-  CG --> CF["Convert successful target-present trials"]
-  CF --> CM["Generated RT, count, and joint model suites"]
-  CF --> HB["Mean-N baseline on generated COCO trials"]
-  HM --> E["LOO, held-out-cell CV, and ranking comparisons"]
-  HB --> E
-  CM --> E
-  E --> M["Selected measurement: M2 on log saccade count"]
-  NI["Prepared NSD images and search targets"] --> NG["ScanDiff visual-search inference"]
-  NG --> NC["Convert successful target-present trials"]
-  NC --> BC["Correct target boxes and trial success using NSD metadata"]
-  BC --> F["Keep successful trials; remove knife and invalid or oversized boxes"]
-  F --> N["Keep positive N and fit NSD M2"]
-  M --> N
-  N --> P["Posterior image effects"]
-  P --> R["Export posterior means: image, score, task"]
-  R --> A["Route A"]
-  R --> B["Route B"]
-  R --> V["Average repeated scene-target records and decompose variance"]
-```
-
-Inference can be skipped when replaying the saved scanpath JSONs. This is the
-entry point for checking historical outputs without introducing new stochastic
-ScanDiff predictions. Regeneration from images is a separate selectable stage.
-
-### Measurements and filters
-
-- `RT` comes from the scanpath record. ScanDiff records it as the sum of predicted
-  fixation durations in milliseconds.
-- `N` is the number of saccades: fixation count minus one. The count models and
-  Mean-N baseline require `N > 0`; the RT models require positive RT and apply
-  their original count-validity checks.
-- Human COCO inclusion follows the paper's detectable-image rule: at least one
-  observer's scanpath must intersect a target box. All target-present trials for
-  qualifying image filenames are retained, including unsuccessful observers.
-  With the supplied human JSON, all 2,241 filenames qualify, retaining 24,880
-  trials. This is different from filtering by the stored `correct` flag alone.
-- Mean-N uses the successful generated COCO trials, matching the historical
-  `merged_correct.csv` input. Its ranking is compared with human M2-RT in
-  Figure 3b. Human model inputs and the generated successful-trial filter are unchanged.
-- NSD correction preserves the original 425 by 425 coordinate transform,
-  first matching usable category box, knife exclusion, box-area limit of 90%,
-  and boundary checks. Saved inputs yield 83,508 corrected trials; positive-N
-  filtering leaves 82,221 observations and 12,447 ranked filenames.
-- Image-effect identity and ranking joins retain the historical filename keys.
-  Target grouping is not changed in this release. See the
-  [inventory](../docs/complexity_inventory.md) for the deferred correction.
-- A larger exported score means greater estimated difficulty. The score is the
-  posterior mean of `img_re`, or `C_image` for joint models. It is not a raw
-  saccade count or a normalized percentile.
-
-## Installation and inputs
-
-Use Python 3.12. The pinned [requirements](requirements.txt) record the tested
-fitting environment, including PyMC 5.27.0 and ArviZ 0.23.0. A C++ compiler is
-needed for the normal PyTensor backend.
-
-```bash
-python3.12 -m venv .venv
-.venv/bin/python -m pip install -r complexity/requirements.txt
-```
-
-Set these paths before using [config.example.json](config.example.json):
-
-```bash
-export COMPLEXITY_DATA=/path/to/saved/complexity/data
-export BRAIN_DATA=/path/to/brain_activation
-export COMPLEXITY_OUTPUT=/path/to/a/new/run
-```
-
-`COMPLEXITY_DATA` must contain the human COCO JSON, generated COCO JSON, and
-`nsd_all_scanpaths.json`. `BRAIN_DATA` supplies the prepared image trees,
-bounding-box JSONs, and full `nsd_augmentation_data/metadata.json`. The small
-metadata sample cannot replace the full file. See the config for exact filenames.
-
-Use a fresh output directory. The NSD posterior alone occupies several GB;
-full COCO suites require additional space. Inputs are read without modification.
-Environment variables can be replaced with absolute paths in a private config.
-Commands below run from the repository root.
-
-## Run the NSD label flow
-
-```bash
-.venv/bin/python -m complexity.run \
-  --config complexity/config.example.json --profile nsd
-```
-
-This converts saved scanpaths, corrects NSD targets, fits M2, exports the ranking,
-computes variance, and verifies the ranking against the preserved Route B labels.
-Defaults are four chains, 2,000 tuning steps, 2,000 draws, seed 42, and target
-acceptance 0.95. The manuscript specifies this target acceptance and the sampling
-counts; seed 42 is an explicit reproduction choice. Chain count, tuning length,
-retained draws, and main package versions were also recovered from the historical
-posterior. NSD does not rerun the COCO model-selection experiment.
-
-To replay only deterministic stages using an existing posterior:
-
-```bash
-.venv/bin/python -m complexity.run \
-  --config complexity/config.example.json --profile nsd \
-  --stages prepare export variance verify \
-  --posterior /path/to/results_nsd_no_knife/M2_n_studentT.nc
-```
-
-The supplied posterior must match the input trial table and reference label set.
-A historical posterior and a fresh refit use different verification criteria.
-
-## Run COCO model comparisons
-
-```bash
-.venv/bin/python -m complexity.run \
-  --config complexity/config.example.json --profile coco
-```
-
-The count suite enables M1-M4. The RT suite enables M1-M4 and all five joint
-variants. Both human and generated tables are fitted. The runner computes LOO
-and five-fold cell-held-out CV with 600 draws, 600 tuning steps, and two chains
-per fold, following the recovered historical CV settings. The baseline uses the generated COCO table and is saved under
-`rankings/predicted_mean/`. Comparisons use human M2-N for
-Figure 4a, matching the recovered plotted result and the author's planned caption
-correction. Other figure comparisons are identified explicitly in `run.py`.
-
-The baseline input follows the author's decision to reproduce the historical
-experiment. New results are saved separately. The completed full run establishes
-execution of every suite, with numerical and convergence limits documented in the
-[investigation](../docs/complexity_discrepancies.md).
-
-Joint RT LOO integrates over the model's predicted count with at least 20 Monte
-Carlo samples, restoring the original research entry point's marginal scoring.
-The first full migrated run omitted that preparation step. Its five joint-model
-LOO rows per RT suite are superseded by separate rescoring artifacts; fitted
-posteriors, CV results, and complexity rankings are unaffected by this correction.
-To rescore a completed RT suite without refitting or replacing its artifacts:
-
-```bash
-.venv/bin/python -m complexity.evaluation.rescore_rt_loo \
-  --results-dir /path/to/completed/coco_human_rt \
-  --csv /path/to/its/trials/human.csv \
-  --output-dir /path/to/new/marginal_loo
-```
-
-The scorer verifies the recorded input and scientific source hashes, reuses the
-recorded seed and count-integration setting, and records posterior hashes. Archived runs require the matching source version; both rescoring and normal
-`--resume` reject incompatible recorded source or settings.
-
-Individual suites also expose `--models` for shorter investigations:
-
-```bash
-.venv/bin/python -m complexity.models.fit_movement_count \
-  --csv /path/to/trials.csv --results-dir /path/to/new/results \
-  --models M1_n_lognormal M2_n_studentT --skip-cv
-```
-
-For pipeline subsets, add `coco_models` to the config with `rt` and `count` lists
-of full model names. Comparisons require both M2 variants. The `--stages` option
-selects stages; they always execute in pipeline order. `--resume` permits model
-checkpoint reuse only when recorded source, input hash, packages, and settings
-match. Errors stop the pipeline and remain visible in its stage logs.
-
-## Run the unfiltered synthetic RT-table workflow
-
-Select `coco-rt-tables` explicitly to prepare target-present synthetic trials without
-success filtering and run the nine RT models for comparison with Tables 1 and A1:
-
-```bash
-.venv/bin/python -m complexity.run \
-  --config complexity/config.example.json --profile coco-rt-tables
-```
-
-The default stages are `prepare fit export compare`. To prepare inputs without fitting:
-
-```bash
-.venv/bin/python -m complexity.run \
-  --config complexity/config.example.json --profile coco-rt-tables --stages prepare
-```
-
-This profile requires `inputs.coco_scanpaths` for preparation and writes
-`trials/coco_unfiltered.csv`, `coco_unfiltered_rt/`, `rankings/coco_unfiltered_rt/`,
-and `comparisons/rt_tables/`. With the frozen scanpaths, preparation yields 31,010 trials
-and 2,779 image labels. The model definitions and sampling settings are the existing RT suite.
-Joint CV uses the recovered parameter expansion; joint LOO retains marginal count integration.
-
-Optional `generate` uses the COCO generation configuration and image/box inputs.
-`variance`, `verify`, and `--posterior` are not supported by this profile.
-Only inputs needed by selected stages must be configured. `compare` can run separately:
-
-```bash
-.venv/bin/python -m complexity.evaluation.compare_paper_tables \
-  --run /path/to/output --tables 1 A1 --output /path/to/table_comparison
-```
-
-The existing `coco` profile continues to fit human and successful-synthetic inputs for
-the ranking figures. `all` still selects `coco` and `nsd`; it does not add the RT-table profile.
-
-## Regenerate scanpaths from prepared images
-
-ScanDiff remains an external dependency. The
-[generation adapter](generation/generate_scanpaths.py) uses its model source,
-Hydra configs, visual-search checkpoint, task embeddings, and DINOv2 backbone.
-It preserves the recovered inference calculations while removing the broken
-plotting call and making input, output, device, and seed explicit.
-
-Create a separate environment with [generation requirements](generation/requirements.txt).
-Supply the recovered ScanDiff checkout, including `src/`, `configs/`,
-`checkpoints/scandiff_visualsearch.pth`, and `data/task_embeddings.npy`. DINOv2
-weights must be cached or downloadable at first use. The required source/configuration files
-and scientific artifacts are identified in [the generation manifest](generation/source_manifest.json).
-
-```bash
-python3.12 -m venv .venv-scandiff
-.venv-scandiff/bin/python -m pip install -r complexity/generation/requirements.txt
-export SCANDIFF_ROOT=/path/to/ScanDiff
-export SCANDIFF_PYTHON="$PWD/.venv-scandiff/bin/python"
-.venv/bin/python -m complexity.run \
-  --config complexity/config.example.json --profile nsd \
-  --stages generate prepare fit export variance verify
-```
-
-The adapter produces ten scanpaths per image-target input, uses 1,000 diffusion
-steps, and processes sorted input paths with seed 1000 by default. It runs one
-process per entry in `generation.devices`, with four entries in the example
-configuration. The author confirmed four historical GPUs and recalled using
-`--force`. The sorted inputs are partitioned into contiguous chunks of size
-`ceil(N / 4)`, with worker seeds 1000, 1001, 1002, and 1003. Repeated device
-entries allow independent workers to share a physical GPU without changing
-their partitions or seeds. Changing the number of workers changes the experiment.
-The `generation.profiles.coco` override selects one float32 worker for COCO;
-NSD uses four mixed-precision workers. These dataset-specific settings follow
-the historical output timestamps and numerical checks described in the run record.
-
-Each worker records its settings, progress, and Python, NumPy, CPU Torch, and
-CUDA random states after each input. `--resume` restores the completed prefix
-and its random state. An image written just before interruption is recomputed
-and checked against the saved output. Unreadable images are logged and skipped
-before sampling, as in the original generator. They remain in the partition
-list. Five such files explain the difference between 52,486 prepared NSD inputs
-and 52,481 historical outputs. Empty per-image JSON lists mark skipped inputs;
-`skipped_images.json` records their errors. Other inference failures stop the run.
-
-The [full reproduction record](../docs/complexity_full_reproduction.md) documents
-the isolated environments and controlled original-versus-adapter checks.
-`--limit` is available for small inference tests when invoking the adapter
-directly. Partial generation must not be used as a complete publication dataset.
-
-## Outputs and validation
-
-| Location within a run | Contents |
+| Profile | Population and operations |
 | --- | --- |
-| `trials/` | Converted tables, selected human trials, corrected NSD trials, selection counts |
-| `nsd_fit/` | NSD M2 posterior, settings, progress manifest, sampling diagnostics |
-| `coco_{human,predicted}_{rt,count}/` | COCO posteriors, LOO tables, CV summaries and model-selection tables |
-| `rankings/` | Sorted `image,score,task` CSVs and score-distribution plots |
-| `comparisons/` | Ranking-comparison summaries and plots |
-| `logs/` | Exact stage commands and their output, including the variance decomposition |
-| `verification.json` | Label identity, ranking agreement, tolerances and pass/fail result |
+| `coco` | Human and successful synthetic target-present trials; RT/count suites, Mean-N baseline and figure comparisons. |
+| `coco-rt-tables` | Unfiltered synthetic target-present trials; RT suite, ranking export and Tables 1/A1 comparison. |
+| `nsd` | Successful synthetic trials, NSD target correction, positive-count M2 fit, ranking export and variance. |
+| `all` | The `coco` and `nsd` workflows. |
 
-Deterministic export requires identical labels, target mapping, and ordering,
-with maximum score error at most `1e-12`. A fresh fit requires identical label
-and target sets, Spearman correlation at least 0.99, score RMSE at most 0.02,
-zero divergences, maximum image-effect R-hat at most 1.01, and minimum bulk and
-tail ESS of 400. These are declared reproduction criteria; passing them does
-not establish equivalence of every possible downstream statistic.
+Stages are `generate`, `prepare`, `fit`, `export`, `compare`, `variance` and `verify`.
+Generation is explicitly selected. The RT-table profile defaults to `prepare fit export compare` and does
+not accept `variance` or `verify`. Other profiles default to `prepare fit export compare variance verify`;
+COCO comparisons and NSD variance/verification run where applicable.
+
+`RT` is in milliseconds. The standard conversion defines `N` as fixation count minus one, so it counts
+saccades. Count models and Mean-N keep `N > 0`. Human COCO selection retains target-present trials for
+filenames with at least one observer fixation inside the target box. Synthetic figure trials additionally
+require `correct == 1`. The RT-table profile does not filter on that flag.
+
+Trial counters follow each subject's retained JSON order. Image effects use filename identity. Ranking
+export selects the last encountered target for a filename and sorts posterior means in descending order.
+The exported score is `img_re` or, for joint models, `C_image`; larger values indicate greater difficulty.
+Mean-N exports raw average counts and its first encountered task mapping.
+
+NSD correction applies the metadata crop transform at 425 by 425 pixels, uses the first usable matching
+category box, updates target hits, removes knife, and rejects invalid or oversized boxes (area above 90%).
+
+## Inputs, identities and sources
+
+Obtain the underlying [COCO-Search18](https://sites.google.com/view/cocosearch/),
+[COCO](https://cocodataset.org/#download) and [NSD](https://www.naturalscenesdataset.org/) data externally.
+Commands start from the prepared inputs below; the example configuration names each path explicitly.
+
+| Input | Required schema or layout |
+| --- | --- |
+| Scanpath JSON, optionally gzip for direct conversion | List of records with `name`, `subject` or `sample_id`, `task`, `condition`, `X`, `Y`, `T`, `RT`, `length`, `bbox`, `correct`; optional `split` and `fixOnTarget`. |
+| Prepared trial CSV | `RT,subject,image,trial,N,T2T,TTFix2R` plus target, condition, correctness and bounding-box fields. |
+| NSD metadata JSON | `images` with path, original size, fractional crop box and category-instance boxes; `categories.instances` maps names to IDs. |
+| Generation image directory | Images below target-category subdirectories. |
+| Generation bounding-box JSON | Image-name keys mapped to objects with `bbox: [x,y,width,height]` in displayed-image coordinates. |
+| Existing posterior | NetCDF with posterior image coordinates and `img_re` or `C_image`, matching the trial table. |
+
+The fixed [nsd_m2_ranking.csv](nsd_m2_ranking.csv) has columns `image,score,task` and 12,447 ranking rows.
+These represent 10,291 physical NSD images and 11,641 physical image-target pairs. Training selection
+retains 12,108 records, 9,990 physical images and 11,304 physical image-target pairs. Do not rewrite labels,
+reorder scores or deduplicate the file when using it as supervision.
+
+Its SHA-256 is `2101a2143b00da45625afeaeda08880c70761f825efb0a7c17769624c0a0e6fb`.
+Installed code resolves this resource inside the `complexity` package.
+
+## Installation
+
+Use Python 3.12 and a C++ compiler for the normal PyTensor backend. From the repository root:
 
 ```bash
-.venv/bin/python -m unittest discover -s complexity/tests -v
+python3.12 -m venv .venv-complexity
+source .venv-complexity/bin/activate
+python -m pip install -c complexity/requirements.lock.txt '.[complexity]'
 ```
 
-These are scientific regression tests, not code-style tooling. The
-[validation record](../docs/complexity_validation.md) records the actual runs,
-including any limitations. The [source manifest](source_manifest.json) keeps
-original and current hashes. Model equations, priors, and core CV calculations
-remain in the original research functions; their broader style cleanup is
-separate from these execution changes.
+[requirements.lock.txt](requirements.lock.txt) records the measurement environment, including PyMC 5.27.0,
+ArviZ 0.23.0, NumPy 2.4.2 and pandas 3.0.1. ScanDiff uses the separate environment described below.
+
+## Commands
+
+Copy [config.example.json](config.example.json), edit the relevant inputs and select an external output
+directory. JSON-relative paths resolve beside the configuration file after environment-variable and `~`
+expansion. Only inputs used by the selected profile and stages are required.
+
+```bash
+export COMPLEXITY_DATA=/path/to/prepared/scanpaths
+export BRAIN_DATA=/path/to/prepared/images-and-metadata
+export COMPLEXITY_OUTPUT=/path/to/output/nsd
+cp complexity/config.example.json /path/to/nsd.json
+python -m complexity run --config /path/to/nsd.json --profile nsd
+```
+
+Replay deterministic preparation and export from an existing posterior:
+
+```bash
+python -m complexity run --config /path/to/nsd.json --profile nsd \
+  --stages prepare export variance verify --posterior-file /path/to/M2_n_studentT.nc
+```
+
+Use distinct output directories in the configurations for the figure and RT-table workflows:
+
+```bash
+python -m complexity run --config /path/to/coco-figures.json --profile coco
+python -m complexity run --config /path/to/coco-rt-tables.json --profile coco-rt-tables
+```
+
+`coco_models.rt` and `coco_models.count` may restrict the selected model names; omit them for full suites.
+The model modules' `--help` lists those names. Add `--resume` to reuse compatible fit or generation state.
+Source, inputs, environment and settings must still match. Export-only `--posterior-file` is for NSD and
+cannot be combined with the `fit` stage.
+
+Retained utility modules also accept explicit paths:
+
+```bash
+python -m complexity.evaluation.compare_paper_tables \
+  --results-dir /path/to/coco-rt-output --tables 1 A1 --output-dir /path/to/table-comparison
+python -m complexity.evaluation.compute_variance --ranking-file complexity/nsd_m2_ranking.csv --min-pairs 2
+python -m complexity.evaluation.rescore_rt_loo --results-dir /path/to/saved-rt-fit \
+  --trials-file /path/to/trials.csv --output-dir /path/to/new-loo-results
+python -m complexity.evaluation.compare_ranking_pair --left-file /path/to/left.csv \
+  --right-file /path/to/right.csv --output-dir /path/to/ranking-comparison
+```
+
+### Regenerate scanpaths from prepared images
+
+Supply an external ScanDiff checkout containing `configs/`, `src/`, its visual-search checkpoint and task
+embeddings. The adapter imports the external model and diffusion implementation. It uses
+`timm` model `vit_base_patch14_reg4_dinov2.lvd142m`, ten simulated viewers per image, and seed 1000.
+COCO configuration uses float32 on one device; the NSD example uses AMP and deterministic image partitions
+across four devices, with worker seed `1000 + worker_index`.
+
+Create a separate environment from the repository root:
+
+```bash
+python3.12 -m venv .venv-scanpaths
+.venv-scanpaths/bin/python -m pip install -c complexity/generation/requirements.lock.txt '.[scanpaths]'
+export SCANDIFF_ROOT=/path/to/ScanDiff
+export SCANDIFF_PYTHON=/absolute/path/to/.venv-scanpaths/bin/python
+python -m complexity run --config /path/to/nsd.json --profile nsd --stages generate prepare
+```
+
+The `generation.scandiff_root` and `generation.python_file` fields select that source tree and interpreter.
+The generation environment retains `timm==1.0.9` in its
+[lockfile](generation/requirements.lock.txt). Prepared NSD boxes and metadata must describe the same crop.
+For direct invocation, use `python -m complexity.generation.generate_scanpaths --help` in that environment;
+`--checkpoint-file` and `--task-embeddings-file` can override the default artifact paths.
+
+| Required artifact below ScanDiff root | SHA-256 |
+| --- | --- |
+| `checkpoints/scandiff_visualsearch.pth` | `8a1683c46dcf6ed3b0e08ca6128bacd6354a1bd8f7824e6fb203a765e43201a6` |
+| `data/task_embeddings.npy` | `831ca726ff8c192cd1cca37140f0c746d5acb61e88aa8b9f838bf26240e8281f` |
+| `configs/demo.yaml` | `82c1545aaf7a137ee4b61c884cfdb27c8fd83e1d0f92381ddf08f27c7e90cf6e` |
+
+Model weights and extracted features remain external. `TORCH_HOME` and `HF_HOME` select the libraries'
+weight caches. Generation writes settings, RNG recovery states, per-image progress and combined JSONs to
+its configured output; keep these when resuming an interrupted generation.
+
+## Outputs
+
+| Location below `output_dir` | Contents |
+| --- | --- |
+| `trials/` | Human, successful synthetic and corrected NSD trial CSVs; RT-table input is `coco_unfiltered.csv`. |
+| `coco_human_rt`, `coco_human_count` | Human model posteriors, settings, diagnostics, LOO and CV results. |
+| `coco_predicted_rt`, `coco_predicted_count` | Successful synthetic figure-model results. |
+| `coco_unfiltered_rt/` | Separate unfiltered RT-table model results. |
+| `nsd_fit/` | NSD M2 posterior and diagnostics. |
+| `rankings/` | `image,score,task` CSVs and distributions, including `coco_unfiltered_rt/` and `predicted_mean/`. |
+| `comparisons/` | Figure ranking comparisons or RT-table cell comparisons. |
+| `verification.json`, `last_run.json`, `logs/` | Ranking check, invocation settings and stage logs. |
+
+## Paper targets and reproducibility settings
+
+The standard frozen inputs select 24,880 human RT trials (2,241 filename labels), 17,310 successful
+synthetic RT trials (2,086 labels), and 31,010 unfiltered synthetic RT trials (2,779 labels).
+Positive-count filtering leaves 24,643 human and 17,309 successful synthetic observations.
+NSD correction yields 83,508 trials, of which 82,221 have positive counts.
+
+Full fits use four chains, 2,000 tuning steps, 2,000 retained draws, target acceptance 0.95 and seed 42.
+Cell-held-out CV uses five folds, two chains, 600 tuning steps, 600 draws and seed 42; joint CV uses two
+Monte Carlo count draws. Joint LOO uses the marginal RT likelihood with at least 20 count draws.
+The model files retain family-specific priors, likelihoods and historical CV parameter expansion.
+
+[paper_tables.csv](paper_tables.csv) transcribes the printed cells of Tables 1, 2, 3 and A1. Its columns are
+`table,suite,file,model,metric,published,decimals`; the suite/file fields identify the expected output and
+`decimals` specifies printed precision. Tables 1/A1 map to `coco_unfiltered_rt`; count tables map to their
+human/synthetic suites. The checker reports matching, different, missing and non-finite cells without
+changing reference values.
+
+The saved-posterior export check requires identical labels and order and maximum score difference
+`1e-12`. Fresh NSD fitting uses identical label membership, Spearman at least `0.99`, score RMSE at most
+`0.02`, image-effect R-hat at most `1.01`, bulk/tail ESS at least `400`, and zero divergences. These criteria
+apply to that workflow. Sampling diagnostics and PSIS-LOO reliability are separate quantities.

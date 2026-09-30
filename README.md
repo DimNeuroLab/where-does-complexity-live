@@ -5,188 +5,118 @@
 Sabrina Patania†, Riccardo Chimisso†, Francesco Uccelli, Valentyn Piskovskyi,
 Marco Fagnani, and Dimitri Ognibene
 
-Department of Psychology, University of Milan-Bicocca, Italy
+Department of Psychology, University of Milan-Bicocca, Italy. † Equal contribution.
 
-† Equal contribution
-
-Companion research repository for the manuscript submitted to the
-*International Journal of Computer Vision (IJCV)*.
-
-## Overview
-
-How difficult is it to find a particular object in an image? The answer depends on
-both the scene and the search target. This work studies visual search complexity
-as a property of **image-target pairs**, grounded in human search behaviour, and
-asks how that complexity is reflected in eye movements, image representations,
-and brain activity.
-
-Starting from human response times and fixation counts in COCO-Search18, we
-estimate a target-conditioned complexity index using hierarchical statistical
-models. We assess the stability of the resulting difficulty rankings and examine
-whether predicted scanpaths can provide a scalable substitute for human gaze.
-We then investigate two routes for predicting the resulting complexity scores:
-
-- **Route A - stimulus readout:** predict complexity from image content and the
-  search target, using either engineered features with XGBoost or a neural
-  predictor operating on DINOv2 and CLIP embeddings.
-- **Route B - neural readout:** predict complexity from Natural Scenes Dataset
-  (NSD) fMRI responses and the search target, using an encoder pretrained to
-  predict visual embeddings and a target-conditioned complexity head.
-
-The fMRI responses were recorded during viewing of the images; the search target
-is supplied separately to the predictor. This distinction matters when
-interpreting neural readout of task-specific complexity.
-
-<img src="docs/figures/readout-routes.svg" width="900" alt="Figure 2: Route A predicts target-conditioned complexity from image features; Route B predicts it from neural activity.">
-
-*Figure 2 from the paper: complexity readout routes. Both routes condition their
-prediction on the search target.*
-
-## Repository status
-
-This repository is being prepared as the cleaned research code release for the
-paper. The [complexity component](complexity/README.md) provides a configurable
-pipeline, the image-to-ranking flow, pinned fitting dependencies, ScanDiff
-integration, and the preserved NSD ranking used by Route B. Its
-[validation record](docs/complexity_validation.md) distinguishes deterministic
-replay, model refitting, and inference smoke tests. The
-[Route B component](route_b/README.md) preserves the original implementation with
-configurable paths, checkpoint replay checks, and resumable training. Its
-[reproduction guide](docs/route_b_reproduction.md) separates equivalence to saved
-paper artifacts from fresh training reproduction.
-Route B now has a standalone public workflow. See its
-[data and model sources](docs/route_b_data.md), [artifact guide](docs/route_b_artifacts.md),
-and [completed reproduction results](docs/route_b_results.md).
-The engineered and embedding Route A implementations are available in their component folders.
+Companion code for the manuscript submitted to the *International Journal of Computer Vision*.
+The study measures how difficult it is to find a particular object in an image, then predicts that
+image-target complexity from visual features and brain activity.
 
 ## Scientific workflow
 
-```mermaid
-flowchart TD
-    H["Human response times and scanpaths"] --> C["Complexity estimation and validation"]
-    G["Predicted scanpaths"] --> C
-    C --> L["Complexity labels for image-target pairs"]
-    I["Images and search targets"] --> A1["Route A: engineered features + XGBoost"]
-    I --> A2["Route A: embedding-conditioned neural predictor"]
-    N["fMRI responses and search targets"] --> B["Route B: neural readout"]
-    V["Visual embeddings"] -.->|Encoder pretraining targets| B
-    L -.->|Supervision and evaluation| A1
-    L -.->|Supervision and evaluation| A2
-    L -.->|Supervision and evaluation| B
-    A1 --> E["Prediction evaluation and cross-route analysis"]
-    A2 --> E
-    B --> E
-```
+[Complexity](complexity/README.md) converts human or generated scanpaths into trial tables, fits hierarchical
+measurement models, and exports posterior-mean difficulty rankings. [Route A](route_a/README.md) predicts
+these scores from the image and target. [Route B](route_b/README.md) predicts them from fMRI, subject identity
+and target conditioning. Route B uses image features as encoder-training supervision.
 
-Visual image embeddings anchor Route B during encoder pretraining. At inference,
-its complexity prediction uses fMRI, subject identity, and target conditioning.
+The NSD fMRI was collected during image viewing. The search target is supplied separately to the readout.
 
-## Repository structure
+<img src="readout-routes.svg" width="900" alt="Route A reads complexity from image features; Route B reads it from fMRI.">
 
-```text
-where-does-complexity-live/
-├── README.md
-├── complexity/
-│   ├── README.md
-│   └── ...                  # Complexity estimation, rankings, and validation
-├── route_a/
-│   ├── README.md
-│   ├── engineered/
-│   │   ├── README.md
-│   │   └── ...              # Engineered features and XGBoost
-│   └── embedding/
-│       ├── README.md
-│       └── ...              # Embedding-conditioned predictor (Fig. 5)
-├── route_b/
-│   ├── README.md
-│   └── ...                  # fMRI preprocessing, pretraining, and readout
-├── shared/
-│   └── ...                  # Reused data, embedding, model, and evaluation code
-├── analysis/
-│   ├── README.md
-│   └── ...                  # Cross-route comparisons and variance analysis
-└── docs/
-    └── ...                  # Data setup, reproduction, and code conventions
-```
+*Figure 2: the paper's two complexity readout routes.*
 
-| Component | Purpose and relation to the paper |
+## Repository layout
+
+| Component | Responsibility |
 | --- | --- |
-| `complexity/` | Prepare behavioural and predicted-gaze data, fit complexity models, generate labels, and evaluate ranking stability. |
-| `route_a/engineered/` | Extract engineered image features and train or apply an XGBoost stimulus predictor. |
-| `route_a/embedding/` | Implement embedding-conditioned stimulus prediction (§5.6.1, Fig. 5), including its feature-family experiments. |
-| `route_b/` | Implement the fMRI pipeline (§5.7, Fig. 7) and its encoder-objective experiments (Fig. 9). |
-| `shared/` | Provide embedding Route A feature extraction, target conditioning, data utilities, and metrics. |
-| `analysis/` | Compare route outputs and quantify recovery of target-driven variance (§5.8). |
-| `docs/` | Document data preparation, reproducibility, and development conventions. |
+| [complexity/](complexity/README.md) | Scanpath preparation, statistical models, ranking export and variance. |
+| [route_a/engineered/](route_a/engineered/README.md) | DINO-small, CLIP and detector features with XGBoost. |
+| [route_a/embedding/](route_a/embedding/README.md) | DINO-large and CLIP embeddings with a target-conditioned neural head. |
+| [route_b/](route_b/README.md) | fMRI preprocessing, encoder pretraining, complexity readout and objective sweep. |
+| [shared/](shared/README.md) | Data, feature, conditioning and metric helpers used by embedding Route A. |
 
-The Fig. 5 pipeline belongs to Route A because it predicts from image embeddings.
-It shares conditioning and uncertainty modelling with Route B, providing a
-comparable stimulus-based counterpart to the neural readout.
+Each component README describes its workflow, inputs, commands, outputs and paper targets.
+Large input data, extracted features, fitted preprocessing and checkpoints belong outside the checkout.
 
-Each component README will describe its scientific purpose, required inputs,
-produced outputs, and commands for reproducing the corresponding paper results.
-Experiment-specific configurations and ablations will live with their owning
-component; reusable implementations will live in `shared/`.
+## Installation and commands
 
-## Data and reproducibility
+Use Python 3.12 on Linux for the recorded environments. Package metadata supports Python 3.11 or newer.
+Choose a component extra and its matching `requirements.lock.txt`; the component instructions provide
+complete installation commands. Keep the Bayesian, neural and ScanDiff environments separate.
 
-The study uses COCO-Search18, MS-COCO, and NSD. Data-access and preparation
-instructions will accompany the released pipelines. Large datasets, extracted
-embeddings, and model checkpoints will be stored separately from source code.
+For example, from the repository root:
 
-Reproduction instructions will identify the configuration, random seeds, image-ID
-splits, and expected outputs for each experiment. The paper describes training-only
-preprocessing and exclusion of held-out complexity images from Route B encoder
-pretraining. The recovered implementation differs in preprocessing, pretraining
-splits, and category-mean handling. The
-[Route B inventory](docs/route_b_inventory.md#protocol-discrepancies-requiring-an-explicit-decision)
-records these differences; historical reproduction and protocol corrections must
-be evaluated separately.
+```bash
+python3.12 -m venv .venv-complexity
+source .venv-complexity/bin/activate
+python -m pip install -c complexity/requirements.lock.txt '.[complexity]'
+python -m complexity --help
+```
+
+| Workflow | Module entry point | Equivalent console command |
+| --- | --- | --- |
+| Measurement | `python -m complexity run --config CONFIG --profile nsd` | `complexity run ...` |
+| Engineered stimulus predictor | `python -m route_a.engineered train ...` or `predict ...` | `route-a-engineered ...` |
+| Embedding stimulus predictor | `python -m route_a.embedding train ...` | `route-a-embedding ...` |
+| Brain readout | `python -m route_b run --config CONFIG` | `route-b run ...` |
+| Brain prediction | `python -m route_b predict ...` | `route-b predict ...` |
+| Brain backbone weights | `python -m route_b download-models` | `route-b download-models` |
+
+Embedding Route A also provides `extract-features`, `evaluate-global` and `evaluate-per-subject`.
+Use `--help` after any subcommand to see its inputs. Options use kebab-case; JSON fields use snake-case.
+Configured paths expand environment variables and `~`, then resolve relative to the JSON file's directory.
+CLI paths resolve relative to the launch directory. Component-specific CSV image resolution is documented
+with its schema.
+
+## External data, models and outputs
+
+The workflows use [COCO-Search18](https://sites.google.com/view/cocosearch/),
+[MS-COCO](https://cocodataset.org/#download), and the
+[NSD](https://www.naturalscenesdataset.org/) data packaged for
+[Algonauts 2023](https://algonautsproject.com/2023/challenge.html#challenge-data).
+Use the component input schemas and original image identities when preparing these inputs.
+
+The fixed [NSD ranking](complexity/nsd_m2_ranking.csv) supplies the released image-target labels.
+It contains 12,447 ranking rows; a ranking row, a physical image and a subject-level observation are
+separate units. Repeated records are retained where the component workflow uses them.
+
+DINOv2, OpenCLIP, Faster R-CNN and ScanDiff requirements are documented with their consumers.
+`TORCH_HOME` and `HF_HOME` control model-weight caches; extracted-feature locations are separate command
+or configuration paths. Train predictor checkpoints and generate run outputs in external directories.
+Compact paper-result CSVs reside inside Complexity and Route B.
 
 ## Development
 
-See the [Python code style guide](docs/code_style.md) for formatting, reST
-docstrings, typing, and imports. [EditorConfig](.editorconfig) supplies basic
-whitespace settings for compatible editors; the remaining conventions are
-documented for authors and reviewers.
+Use two-space indentation, UTF-8, LF endings, a final newline, no trailing whitespace and a 127-character
+line limit. Prefer single-quoted ordinary strings; double quotes can avoid escaping. Keep imports sorted
+in standard-library, third-party and local groups, preserving initialization order where required.
+Use ordinary hyphens in prose and comments. [EditorConfig](.editorconfig) supplies the basic editor settings.
 
-The [complexity code inventory](docs/complexity_inventory.md) maps the existing
-research code to the manuscript and records provenance and deferred decisions.
-The [complexity README](complexity/README.md) documents the full flow, inputs,
-commands, model settings, and output checks.
-The [Route B inventory](docs/route_b_inventory.md) maps its source files and
-saved checkpoints to the paper, and the [Route B README](route_b/README.md)
-documents the input-to-prediction flow.
+Write valid reStructuredText docstrings: double backticks for inline code, Sphinx field lists for documented
+parameters and returns, and literal blocks for examples. Docstrings are optional; annotate all function
+parameters and returns. Use concrete containers and narrow interfaces, keeping justified `Any` local to
+library or serialization boundaries. Mathematical variable names may follow the experiment.
+
+These are review conventions. There are no formatter, linter, type-checker or style-validation dependencies.
+To edit a component, install its extra with `-e` and add the `dev` extra for pytest. Run the relevant checks
+in that component's environment:
+
+```bash
+# Measurement environment
+python -m unittest discover -s complexity/tests -v
+# Engineered environment with the dev extra
+python -m pytest route_a/engineered/tests -q
+# Embedding environment
+python -m unittest discover -s route_a/embedding/tests -v
+# Route B environment
+python -m unittest discover -s route_b/tests -v
+```
+
+These bounded checks exercise schemas, populations, command dispatch, saved formats, scoring and recovery.
+They do not launch full scientific experiments. Retain operation order, RNG use and checkpoint schemas
+when refining scientific code. Resume checks intentionally reject source, settings or input changes.
 
 ## Paper and citation
 
-**Where does complexity live? A cross-level bridge for measuring task-specific
-visual complexity.** Sabrina Patania, Riccardo Chimisso, Francesco Uccelli,
-Valentyn Piskovskyi, Marco Fagnani, and Dimitri Ognibene. Manuscript submitted to
-*International Journal of Computer Vision*.
-
-A public paper link and machine-readable citation will be added when available.
-
-## Engineered Route A code
-
-The [engineered Route A package](route_a/engineered/README.md) provides training
-and prediction for image and search target pairs. Its guide covers installation
-and usage; [data setup](docs/data_setup.md) covers the required inputs.
-
-## Install the integrated package
-
-Use Python 3.12 for the documented environments. The package requires Python 3.11 or newer.
-Install the component dependencies before installing the local package:
-
-```bash
-# Engineered Route A, including pretrained feature extraction.
-python -m pip install -e '.[engineered,dev]'
-# Embedding Route A.
-python -m pip install -e '.[embedding]'
-```
-
-For Complexity and Route B, use their separate dependency specifications and environments
-as described in their READMEs, then run `python -m pip install --no-deps -e .` from the repository root.
-The distribution includes all four source packages and their runtime CSV/configuration resources.
-The contributed commands remain `complexity-route-a` and `complexity-route-a-embedding`;
-Complexity and Route B retain their documented `python -m` commands.
+Sabrina Patania, Riccardo Chimisso, Francesco Uccelli, Valentyn Piskovskyi, Marco Fagnani, and Dimitri Ognibene.
+*Where does complexity live? A cross-level bridge for measuring task-specific visual complexity.*
+Manuscript submitted to the *International Journal of Computer Vision*.
