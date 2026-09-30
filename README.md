@@ -112,10 +112,10 @@ where-does-complexity-live/
 | Component | Purpose and relation to the paper |
 | --- | --- |
 | `complexity/` | Prepare behavioural and predicted-gaze data, fit complexity models, generate labels, and evaluate ranking stability. |
-| `route_a/engineered/` | Implement feature-based stimulus prediction (§5.5.1), feature comparisons, and the related fMRI augmentation experiments (§5.6). |
+| `route_a/engineered/` | Extract engineered image features and train or apply an XGBoost stimulus predictor. |
 | `route_a/embedding/` | Implement embedding-conditioned stimulus prediction (§5.6.1, Fig. 5), including its feature-family experiments. |
 | `route_b/` | Implement the fMRI pipeline (§5.7, Fig. 7) and its encoder-objective experiments (Fig. 9). |
-| `shared/` | Hold code reused across components, such as embedding extraction, target conditioning, split utilities, and metrics. |
+| `shared/` | Provide embedding Route A feature extraction, target conditioning, data utilities, and metrics. |
 | `analysis/` | Compare route outputs and quantify recovery of target-driven variance (§5.8). |
 | `docs/` | Document data preparation, reproducibility, and development conventions. |
 

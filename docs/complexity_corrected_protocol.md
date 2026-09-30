@@ -1,5 +1,8 @@
 # Revised COCO measurement comparison
 
+Historical investigation record: the corrected-only commands below belong to the externally
+preserved corrected experiment snapshot, not the current publication package.
+
 Protocol fixed on 14 September 2026, before inspecting the revised model scores.
 The author authorized historical provenance documentation, explicit successful-trial
 selection, a joint CV scoring correction, and renewed model comparisons. Changes

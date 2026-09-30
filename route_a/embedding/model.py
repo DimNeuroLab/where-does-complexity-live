@@ -73,8 +73,8 @@ def select_features(
 class ImageComplexityDataset(Dataset):
   """Image-embedding complexity dataset (no fMRI, no subject ID).
 
-  Every unique ``(nsd_id, task)`` pair in the complexity records becomes one
-  sample. DINO/CLIP image features are subject-independent (the same NSD
+  Every retained complexity record becomes one sample, including repeated
+  ``(nsd_id, task)`` pairs. DINO/CLIP image features are subject-independent (the same NSD
   image yields the same embedding regardless of which subject viewed it),
   so each image's features are loaded once, from whichever subject saw it
   first.

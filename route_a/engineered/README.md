@@ -7,7 +7,7 @@ and inference without requiring NSD or fMRI data.
 
 ## Install, train, predict
 
-Use Python 3.10 or newer. From the repository root, create a virtual
+Use Python 3.12 for the documented environment (the package requires Python 3.11 or newer). From the repository root, create a virtual
 environment and install the engineered component:
 
 ```bash
