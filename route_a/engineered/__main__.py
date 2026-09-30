@@ -19,8 +19,18 @@ def _parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser(allow_abbrev=False, description='Train or use the engineered Route A complexity predictor.')
   commands = parser.add_subparsers(dest='command', required=True)
 
-  train = commands.add_parser('train', allow_abbrev=False, help='Train a complete model bundle from labeled image-target pairs.')
-  train.add_argument('--labels-file', dest='data', type=Path, required=True, help='CSV with image_id,image_path,target,score columns.')
+  train = commands.add_parser(
+    'train',
+    allow_abbrev=False,
+    help='Train a complete model bundle from labeled image-target pairs.',
+  )
+  train.add_argument(
+    '--labels-file',
+    dest='data',
+    type=Path,
+    required=True,
+    help='CSV with image_id,image_path,target,score columns.',
+  )
   train.add_argument('--image-root', type=Path, default=None, help='Base directory for relative image paths.')
   train.add_argument('--output-dir', dest='out', type=Path, required=True, help='New directory for the trained model bundle.')
   train.add_argument('--features-dir', dest='cache_dir', type=Path, default=None, help='Feature cache directory.')
@@ -32,7 +42,13 @@ def _parser() -> argparse.ArgumentParser:
   train.add_argument('--overwrite', action='store_true', help='Replace files in an existing output directory.')
 
   predict = commands.add_parser('predict', allow_abbrev=False, help='Predict from one image-target pair or an input CSV.')
-  predict.add_argument('--model-dir', dest='model', type=Path, required=True, help='Directory containing the complete model bundle.')
+  predict.add_argument(
+    '--model-dir',
+    dest='model',
+    type=Path,
+    required=True,
+    help='Directory containing the complete model bundle.',
+  )
   source = predict.add_mutually_exclusive_group(required=True)
   source.add_argument('--image-file', dest='image', type=Path, help='One input image.')
   source.add_argument('--input-file', dest='input', type=Path, help='CSV with image_path,target columns.')

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from __future__ import annotations
 import argparse
+from __future__ import annotations
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -46,7 +46,7 @@ def compare_rankings(gt_dir: Path, gen_dir: Path, output_dir: Path) -> None:
       df_gt = pd.read_csv(gt_file)
       df_gen = pd.read_csv(gen_file)
     except Exception as e:
-      print(f"Error reading {filename}: {e}")
+      print(f'Error reading {filename}: {e}')
       continue
 
     # Check required columns. Based on previous scripts, we expect 'image' and 'score'
@@ -59,7 +59,7 @@ def compare_rankings(gt_dir: Path, gen_dir: Path, output_dir: Path) -> None:
     merged = pd.merge(df_gt, df_gen, on='image', suffixes=('_gt', '_gen'), how='inner')
 
     if len(merged) < 2:
-      print(f"Skipping {filename}: Not enough overlapping images ({len(merged)}).")
+      print(f'Skipping {filename}: Not enough overlapping images ({len(merged)}).')
       continue
 
     # 1. Spearman Rank Correlation
@@ -93,7 +93,7 @@ def compare_rankings(gt_dir: Path, gen_dir: Path, output_dir: Path) -> None:
       'n_images': len(merged)
     })
 
-    print(f"{filename:<40} | {rho:.3f}    | {tau:.3f}    | {overlap_frac:.2f}     | {rmse:.3f}    | {len(merged)}")
+    print(f'{filename:<40} | {rho:.3f}    | {tau:.3f}    | {overlap_frac:.2f}     | {rmse:.3f}    | {len(merged)}')
 
     # --- Plotting ---
     plt.figure(figsize=(8, 8))
@@ -117,7 +117,7 @@ def compare_rankings(gt_dir: Path, gen_dir: Path, output_dir: Path) -> None:
       line_kws={'linestyle': '--', 'linewidth': 1, 'label': 'Trend'}
     )
 
-    plt.title(f"Comparison: {filename}\nrho={rho:.3f}, tau={tau:.3f}, top20={overlap_frac:.2f}, N={len(merged)}")
+    plt.title(f'Comparison: {filename}\nrho={rho:.3f}, tau={tau:.3f}, top20={overlap_frac:.2f}, N={len(merged)}')
     plt.xlabel('Ground Truth Difficulty Estimate')
     plt.ylabel('Generated Scanpaths Difficulty Estimate')
     plt.grid(True, linestyle='--', alpha=0.5)
@@ -132,13 +132,16 @@ def compare_rankings(gt_dir: Path, gen_dir: Path, output_dir: Path) -> None:
     summary_path = output_dir / 'comparison_summary.csv'
     pd.DataFrame(results).to_csv(summary_path, index=False)
     print('-' * 85)
-    print(f"Summary saved to {summary_path}")
-    print(f"Comparison plots saved in {output_dir}")
+    print(f'Summary saved to {summary_path}')
+    print(f'Comparison plots saved in {output_dir}')
   else:
     print('\nNo shared model files found or no overlapping images to compare.')
 
 if __name__ == '__main__':
-  parser = argparse.ArgumentParser(allow_abbrev=False, description='Compare ranking CSVs between Ground Truth and Generated models.')
+  parser = argparse.ArgumentParser(
+    allow_abbrev=False,
+    description='Compare ranking CSVs between Ground Truth and Generated models.',
+  )
 
   parser.add_argument(
     '--gt-dir',
@@ -161,5 +164,5 @@ if __name__ == '__main__':
 
   args = parser.parse_args()
 
-  print(f"Comparing rankings from:\n  GT:  {args.gt_dir}\n  GEN: {args.gen_dir}")
+  print(f'Comparing rankings from:\n  GT:  {args.gt_dir}\n  GEN: {args.gen_dir}')
   compare_rankings(args.gt_dir, args.gen_dir, args.out_dir)

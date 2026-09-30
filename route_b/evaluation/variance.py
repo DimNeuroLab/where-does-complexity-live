@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from route_b.config import paths as get_paths
+from route_b.config import configure, paths as get_paths
 from route_b.constants import (
   CATEGORY_EMBED_DIM,
   CLIP_EMBED_DIM,
@@ -31,6 +31,7 @@ from route_b.data.datasets import (
   load_complexity_records,
 )
 from route_b.models.complexity import BrainComplexityModel
+from route_b.types import Record
 
 
 def sample_variance(values: list[float], mean: float) -> float:
@@ -85,7 +86,7 @@ def load_normalized_fmri() -> dict[str, np.ndarray]:
 
 def unique_scene_target_records(records: list[Record]) -> list[Record]:
   """Keep one record per physical NSD scene and target task."""
-  unique_records: dict[tuple[int, str], dict] = {}
+  unique_records: dict[tuple[int, str], Record] = {}
   for record in records:
     unique_records.setdefault((record['nsd_id'], record['task']), record)
   return list(unique_records.values())
@@ -287,8 +288,9 @@ def plot_multitarget_subject_correlations(
 
 
 def main() -> None:
-  parser = argparse.ArgumentParser(description=__doc__)
-  parser.add_argument('--checkpoint', type=Path, default=get_paths().checkpoints / 'complexity' / 'multisubj_best.pt')
+  parser = argparse.ArgumentParser(allow_abbrev=False, description=__doc__)
+  parser.add_argument('--config', type=Path, required=True)
+  parser.add_argument('--checkpoint-file', dest='checkpoint', type=Path)
   parser.add_argument('--min-pairs', type=int, default=2, metavar='T')
   parser.add_argument('--batch-size', type=int, default=256)
   parser.add_argument(
@@ -298,6 +300,9 @@ def main() -> None:
   )
   parser.add_argument('--device', default='cuda' if torch.cuda.is_available() else 'cpu', choices=('cpu', 'cuda'))
   args = parser.parse_args()
+  configure(args.config, ('variance',))
+  if args.checkpoint is None:
+    args.checkpoint = get_paths().checkpoints / 'complexity/visual_1.pt'
   if args.min_pairs < 2:
     parser.error('--min-pairs must be at least 2')
   if args.batch_size < 1:

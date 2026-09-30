@@ -1,12 +1,12 @@
 """Run the documented complexity flow from saved scanpaths or prepared images."""
 
 import argparse
-from collections.abc import Sequence
 import json
 import os
 import re
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -41,7 +41,12 @@ def main(argv: Sequence[str] | None = None) -> None:
   parser.add_argument('--config', type=Path, required=True)
   parser.add_argument('--profile', choices=['nsd', 'coco', 'all', 'coco-rt-tables'], default='nsd')
   parser.add_argument('--stages', nargs='+', choices=['generate', 'prepare', 'fit', 'export', 'compare', 'variance', 'verify'])
-  parser.add_argument('--posterior-file', dest='posterior', type=Path, help='Export and verify an existing NSD posterior instead of a fresh fit.')
+  parser.add_argument(
+    '--posterior-file',
+    dest='posterior',
+    type=Path,
+    help='Export and verify an existing NSD posterior instead of a fresh fit.',
+  )
   parser.add_argument('--resume', action='store_true')
   args = parser.parse_args(argv)
   config: dict[str, Any] = json.loads(args.config.read_text())
@@ -117,7 +122,8 @@ def main(argv: Sequence[str] | None = None) -> None:
       generation = {**config['generation'], **config['generation'].get('profiles', {}).get(profile, {})}
       destination = output / 'scanpaths' / profile
       argv = [
-        '--scandiff-root', str(configured_path(generation['scandiff_root'], base)), '--images-dir', str(inputs[f'{profile}_images_dir']),
+        '--scandiff-root', str(configured_path(generation['scandiff_root'], base)),
+        '--images-dir', str(inputs[f'{profile}_images_dir']),
         '--bboxes-file', str(inputs[f'{profile}_bboxes_file']), '--output-dir', str(destination),
         '--device', generation.get('device', 'cuda:0'), '--seed', str(generation.get('seed', 1000)),
         '--precision', generation.get('precision', 'amp'),
@@ -168,7 +174,10 @@ def main(argv: Sequence[str] | None = None) -> None:
       else:
         for source, table in [('human', 'human.csv'), ('predicted', 'coco_predicted.csv')]:
           for family, script in [('rt', 'fit_response_time'), ('count', 'fit_movement_count')]:
-            argv = ['--trials-file', str(trials / table), '--output-dir', str(output / f'coco_{source}_{family}'), *sampling_args]
+            argv = [
+              '--trials-file', str(trials / table),
+              '--output-dir', str(output / f'coco_{source}_{family}'), *sampling_args,
+            ]
             selected = config.get('coco_models', {}).get(family)
             if selected:
               argv += ['--models', *selected]
@@ -213,7 +222,9 @@ def main(argv: Sequence[str] | None = None) -> None:
         '--output-dir', str(output / 'comparisons' / name),
       ], name)
   if 'variance' in stages and 'nsd' in profiles:
-    run('evaluation.compute_variance', ['--ranking-file', str(output / 'rankings/nsd/full_ranking_M2_n_studentT.csv')], 'variance')
+    run('evaluation.compute_variance', [
+      '--ranking-file', str(output / 'rankings/nsd/full_ranking_M2_n_studentT.csv'),
+    ], 'variance')
   if 'verify' in stages and 'nsd' in profiles:
     diagnostic_args = [] if args.posterior else [
       '--diagnostics-file', str(output / 'nsd_fit/M2_n_studentT_diagnostics.json')

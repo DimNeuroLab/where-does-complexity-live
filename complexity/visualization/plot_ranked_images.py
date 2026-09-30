@@ -11,7 +11,7 @@ def plot_images(ranking: pd.Series, img_map: dict[str, str], model_name: str, im
   # Select images
   n = len(ranking)
   if n < 15:
-    print(f"Not enough images to sample (found {n}). Skipping plot.")
+    print(f'Not enough images to sample (found {n}). Skipping plot.')
     return
 
   top_5 = ranking.head(5)
@@ -46,7 +46,7 @@ def plot_images(ranking: pd.Series, img_map: dict[str, str], model_name: str, im
 
       # If not found or task unknown, try searching
       if not img_path or not img_path.exists():
-        found = list(images_dir.glob(f"*/{img_name}"))
+        found = list(images_dir.glob(f'*/{img_name}'))
         if found:
           img_path = found[0]
         else:
@@ -91,7 +91,7 @@ def plot_images(ranking: pd.Series, img_map: dict[str, str], model_name: str, im
 
   fig, axes = plt.subplots(rows, cols, figsize=(fig_w, fig_h), constrained_layout=True)
 
-  fig.suptitle(f"Difficulty Ranking: {model_name}\n(Posterior mean)", fontsize=16)
+  fig.suptitle(f'Difficulty Ranking: {model_name}\n(Posterior mean)', fontsize=16)
 
   for i, (group_name, row_items) in enumerate(rows_data):
     for j, item in enumerate(row_items):
@@ -112,18 +112,18 @@ def plot_images(ranking: pd.Series, img_map: dict[str, str], model_name: str, im
         for spine in ax.spines.values():
           spine.set_visible(False)
       else:
-        ax.text(0.5, 0.5, f"Image not found\n{img_name}", ha='center')
+        ax.text(0.5, 0.5, f'Image not found\n{img_name}', ha='center')
         ax.set_facecolor('#eeeeee')
 
       task_display = task if task else 'unknown'
-      ax.set_title(f"Score: {score:.3f}\nTask: {task_display}\n{img_name}", fontsize=9)
+      ax.set_title(f'Score: {score:.3f}\nTask: {task_display}\n{img_name}', fontsize=9)
       ax.set_xticks([])
       ax.set_yticks([])
 
   output_dir.mkdir(exist_ok=True, parents=True)
-  out_path = output_dir / f"ranking_{model_name}.png"
+  out_path = output_dir / f'ranking_{model_name}.png'
   plt.savefig(out_path)
-  print(f"Saved plot to {out_path}")
+  print(f'Saved plot to {out_path}')
   plt.close(fig)
 
 def main() -> None:

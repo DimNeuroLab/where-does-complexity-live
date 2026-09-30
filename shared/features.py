@@ -68,7 +68,7 @@ def build_dino_model(
   """Load DINOv2 ViT-L/14 and its input transform.
 
   Respects ``TORCH_HOME`` for the torch.hub weights cache; see
-  ``docs/data_setup.md`` for the recommended setup.
+  the embedding component README for input and cache setup.
   """
   model = cast(DinoModel, torch.hub.load('facebookresearch/dinov2', model_name))
   model = model.to(device).eval()
@@ -165,7 +165,7 @@ def build_clip_model(
   """Load OpenCLIP and its preprocessing transform and tokenizer.
 
   Respects ``HF_HOME`` and OpenCLIP's own cache env vars for the weights
-  cache; see ``docs/data_setup.md``.
+  cache; see the embedding component README.
   """
   import open_clip
 

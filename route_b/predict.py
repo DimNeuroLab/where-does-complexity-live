@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import argparse
-from collections.abc import Sequence
 import csv
 import json
 import pickle
+from collections.abc import Sequence
 from pathlib import Path
 
 import numpy as np
