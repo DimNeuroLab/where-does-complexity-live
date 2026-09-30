@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import json
 
 import numpy as np
@@ -55,7 +57,7 @@ def test_preprocessor_fits_pca_on_training_rows_only() -> None:
   assert preprocessor.transform(validation).shape == (2, 16 + 26 + 2 + 2)
 
 
-def test_complete_bundle_round_trip(tmp_path) -> None:
+def test_complete_bundle_round_trip(tmp_path: Path) -> None:
   frame = _feature_frame()
   feature_config = FeatureConfig(dino_dim=3, openclip_dim=4)
   result = train_engineered(frame, feature_config, TrainingConfig(cv_folds=3, n_estimators=5, pca_components=2))

@@ -38,7 +38,7 @@ class _StubExtractor:
     return pd.concat([canonical.reset_index(drop=True), pd.DataFrame(rows)], axis=1)
 
 
-def test_train_then_predict_cli(tmp_path, monkeypatch, capsys) -> None:
+def test_train_then_predict_cli(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
   monkeypatch.setattr(cli, 'ImageTargetFeatureExtractor', _StubExtractor)
   monkeypatch.setattr(predictor_module, 'ImageTargetFeatureExtractor', _StubExtractor)
   image_root = tmp_path / 'images'
