@@ -2,6 +2,13 @@
 .venv-routeb/
 __pycache__/
 *.py[cod]
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+model_bundle/
+feature_cache/
+outputs/
 
 # Route B models and derived arrays are generated locally, not released.
 /route_b/**/*.pt
