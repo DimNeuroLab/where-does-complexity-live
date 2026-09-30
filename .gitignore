@@ -1,3 +1,13 @@
 .venv/
+.venv-routeb/
 __pycache__/
 *.py[cod]
+
+# Route B models and derived arrays are generated locally, not released.
+/route_b/**/*.pt
+/route_b/**/*.pth
+/route_b/**/*.ckpt
+/route_b/**/*.safetensors
+/route_b/**/*.pkl
+/route_b/**/*.npy
+/route_b/**/*.npz

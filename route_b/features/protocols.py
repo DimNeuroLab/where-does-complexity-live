@@ -1,0 +1,23 @@
+"""Narrow interfaces for the third-party image and text backbones."""
+
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
+from typing import Protocol, Self
+
+import torch
+
+
+class DinoModel(Protocol):
+  blocks: Sequence[Callable[[torch.Tensor], torch.Tensor]]
+
+  def to(self, device: str) -> Self: ...
+  def eval(self) -> Self: ...
+  def prepare_tokens_with_masks(self, images: torch.Tensor) -> torch.Tensor: ...
+
+
+class ClipModel(Protocol):
+  def to(self, device: str) -> Self: ...
+  def eval(self) -> Self: ...
+  def encode_image(self, images: torch.Tensor) -> torch.Tensor: ...
+  def encode_text(self, tokens: torch.Tensor) -> torch.Tensor: ...

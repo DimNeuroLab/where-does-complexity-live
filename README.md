@@ -49,8 +49,15 @@ paper. The [complexity component](complexity/README.md) provides a configurable
 pipeline, the image-to-ranking flow, pinned fitting dependencies, ScanDiff
 integration, and the preserved NSD ranking used by Route B. Its
 [validation record](docs/complexity_validation.md) distinguishes deterministic
-replay, model refitting, and inference smoke tests. The other components in the
-layout below remain planned.
+replay, model refitting, and inference smoke tests. The
+[Route B component](route_b/README.md) preserves the original implementation with
+configurable paths, checkpoint replay checks, and resumable training. Its
+[reproduction guide](docs/route_b_reproduction.md) separates equivalence to saved
+paper artifacts from fresh training reproduction.
+Route B now has a standalone public workflow. See its
+[data and model sources](docs/route_b_data.md), [artifact guide](docs/route_b_artifacts.md),
+and [completed reproduction results](docs/route_b_results.md).
+The other components in the layout below remain planned.
 
 ## Scientific workflow
 
@@ -128,10 +135,13 @@ instructions will accompany the released pipelines. Large datasets, extracted
 embeddings, and model checkpoints will be stored separately from source code.
 
 Reproduction instructions will identify the configuration, random seeds, image-ID
-splits, and expected outputs for each experiment. Learned preprocessing and
-target-mean residualisation must be fitted on the relevant training split.
-Route B additionally separates encoder training, encoder validation, and
-complexity validation to keep held-out images out of encoder pretraining.
+splits, and expected outputs for each experiment. The paper describes training-only
+preprocessing and exclusion of held-out complexity images from Route B encoder
+pretraining. The recovered implementation differs in preprocessing, pretraining
+splits, and category-mean handling. The
+[Route B inventory](docs/route_b_inventory.md#protocol-discrepancies-requiring-an-explicit-decision)
+records these differences; historical reproduction and protocol corrections must
+be evaluated separately.
 
 ## Development
 
@@ -144,6 +154,9 @@ The [complexity code inventory](docs/complexity_inventory.md) maps the existing
 research code to the manuscript and records provenance and deferred decisions.
 The [complexity README](complexity/README.md) documents the full flow, inputs,
 commands, model settings, and output checks.
+The [Route B inventory](docs/route_b_inventory.md) maps its source files and
+saved checkpoints to the paper, and the [Route B README](route_b/README.md)
+documents the input-to-prediction flow.
 
 ## Paper and citation
 
