@@ -1109,37 +1109,37 @@ def cellheldout_cv(
                 else:
                     raise ValueError("bad xN_mode")
 
-                # Each MC block contains every posterior draw in its original order.
+                # Preserve the recovered joint-CV mixture expansion.
                 mu_mc = np.concatenate(mu_all, axis=0)  # (S*mcN, T)
                 if rt_family == "normal_logrt":
                     sigma = post["sigma_RT"].values.astype(float)
-                    sigma_mc = np.tile(sigma, mcN)
+                    sigma_mc = np.repeat(sigma, mcN)
                     rmse, elpd = score_logrt_mixture_normal(y, mu_mc, sigma_mc)
 
                 elif rt_family == "studentt_logrt":
                     sigma = post["sigma_RT"].values.astype(float)
-                    sigma_mc = np.tile(sigma, mcN)
+                    sigma_mc = np.repeat(sigma, mcN)
                     if "nu_minus2_over10" in post:
                         nu = post["nu_minus2_over10"].values.astype(float) + 2.0
                     elif "nu" in post:
                         nu = post["nu"].values.astype(float)
                     else:
                         nu = np.full(S, 5.0)
-                    nu_mc = np.tile(nu, mcN)
+                    nu_mc = np.repeat(nu, mcN)
                     rmse, elpd = score_logrt_mixture_studentt(y, mu_mc, sigma_mc, nu_mc)
 
                 elif rt_family == "shifted_lognormal_rt":
                     sigma = post["sigma"].values.astype(float)
                     tau = post["tau"].values.astype(float)
-                    sigma_mc = np.tile(sigma, mcN)
-                    tau_mc = np.tile(tau, mcN)
+                    sigma_mc = np.repeat(sigma, mcN)
+                    tau_mc = np.repeat(tau, mcN)
                     rmse, elpd = score_logrt_mixture_shifted_lognormal(y, rt, mu_mc, sigma_mc, tau_mc)
 
                 elif rt_family == "exgaussian_rt":
                     sigma = post["sigma"].values.astype(float)
                     nu = post["nu"].values.astype(float)
-                    sigma_mc = np.tile(sigma, mcN)
-                    nu_mc = np.tile(nu, mcN)
+                    sigma_mc = np.repeat(sigma, mcN)
+                    nu_mc = np.repeat(nu, mcN)
                     rmse, elpd = score_logrt_mixture_exgaussian(y, rt, mu_mc, sigma_mc, nu_mc)
 
                 else:
