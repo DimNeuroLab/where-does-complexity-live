@@ -1,0 +1,29 @@
+{
+  "inputs": {
+    "nsd_root": "${NSD_DATA}"
+  },
+  "devices": [
+    0
+  ],
+  "gpu_hours": 72,
+  "cpu_threads": 8,
+  "encoder": {
+    "epochs": 100,
+    "batch_size": 256,
+    "lr": 0.0003,
+    "patience": 15,
+    "dino_loss_weight": 1.0,
+    "clip_loss_weight": 1.0,
+    "dino_loss_reduction": "sum"
+  },
+  "head": {
+    "epochs": 60,
+    "batch_size": 256,
+    "lr": 0.0003,
+    "patience": 15,
+    "freeze_encoder_epochs": 100,
+    "aux_weight": 0.0,
+    "cv_folds": 5
+  },
+  "output_dir": "${ROUTE_B_OUTPUT}"
+}

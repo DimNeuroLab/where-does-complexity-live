@@ -1,110 +1,127 @@
-# Route A: engineered image features
+# Route A: engineered stimulus readout
 
-This package predicts a complexity score for an **image and search target** using
-DINOv2 and OpenCLIP image embeddings, Faster R-CNN detection evidence, target
-indicators, and an XGBoost regressor. It provides ordinary image-path training
-and inference without requiring NSD or fMRI data.
+## Purpose and paper mapping
 
-## Install, train, predict
+This variant predicts an image-target complexity score from DINOv2 and CLIP image embeddings, Faster R-CNN
+detection evidence and target indicators with XGBoost. It implements the engineered stimulus-readout
+workflow associated with Sections 5.5-5.6. Training learns the scale of the supplied labels.
 
-Use Python 3.10 or newer. From the repository root, create a virtual
-environment and install the engineered component:
+## Workflow
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -e '.[engineered]'
+1. Validate labeled image-target rows and physical-image identities.
+2. Extract DINO-small (384 dimensions), CLIP (768), 26 detector features and 16 target indicators.
+3. Fit median imputation and separate DINO/CLIP PCA transforms on each training fold, then fit XGBoost.
+4. Export grouped held-out predictions and fit a final full-data model bundle for prediction.
+
+DINO and CLIP each use up to 64 principal components, limited by the available training rows.
+Grouped validation keeps every row for a physical image in one fold. It uses shuffled
+`StratifiedGroupKFold` when per-target image counts permit, otherwise `GroupKFold`, with at most the
+requested fold count. Final prediction uses the saved preprocessing and extractor configuration.
+
+## Inputs, identities and sources
+
+Training accepts a UTF-8 CSV with these columns:
+
+| Column | Meaning |
+| --- | --- |
+| `image_id` | Stable physical-scene ID, shared across targets and subject copies. |
+| `image_path` | Readable image path; relative paths resolve under `--image-root`, or the launch directory if omitted. |
+| `target` | Canonical target name. |
+| `score` | Finite numeric complexity label. |
+| `subject` | Optional subject identity, filled on every row when present; not a model feature. |
+
+Keys must be unique: `(image_id,target)` or `(subject,image_id,target)` when subject is present.
+Prediction CSVs require `image_path,target`; optional identity columns are carried through.
+
+The 16 supported targets, in feature order, are:
+
+```text
+bottle, car, chair, clock, cup, fork, keyboard, laptop,
+microwave, mouse, oven, potted plant, sink, stop sign, toilet, tv
 ```
 
-Train a model from a CSV of labeled image-target pairs:
+Two Python adapters prepare the canonical schema:
 
-```bash
-python -m route_a.engineered train --data labels.csv --image-root /path/to/images --out model_bundle/
-```
+| Adapter in [datasets.py](datasets.py) | Source schema and selection |
+| --- | --- |
+| `load_coco_pairs(csv_path, image_root)` | `image,task,score`; drops bowl and knife and normalizes target names. |
+| `load_nsd_pairs(inventory_path, image_root, subject=None)` | `nsd_id,subject,complexity_category,complexity_score,has_complexity`; selects labeled rows and retains subject identity. |
 
-Predict the score for a new pair:
-
-```bash
-python -m route_a.engineered predict --model model_bundle/ --image /path/to/example.jpg --target chair
-```
-
-No complete pretrained model bundle has been published yet. Without a bundle,
-train one before prediction. `score` is supplied by the user at training time;
-the package does not derive it from response times or eye movements. With the
-paper's labels, predictions estimate the M2-derived complexity score. With other
-labels, the output follows that label scale.
-
-## COCO-Search18 and NSD
-
-Both can supply training rows, but they are **separate datasets and label
-sources**. The COCO adapter reads its supplied `score`; the NSD adapter reads
-`complexity_score` from labeled inventory rows and retains `subject`. Each
-adapter produces the same four required training columns. Train a separate
-bundle for each dataset; the code does not combine them or ship a trained model.
-See [data setup](../../docs/data_setup.md#coco-search18-versus-nsd) for the
-source columns and distinct paper label definitions. NSD `subject` identifies
-rows but does not enter the regressor. Prediction uses an image and target with
-either bundle; its score scale comes from that bundle's training labels.
-
-## Input and batch prediction
-
-The training CSV requires `image_id,image_path,target,score`, with optional
-`subject`. `image_id` identifies the physical scene across targets and subjects
-so validation can keep all rows for that scene in one fold. Relative image paths
-are resolved under `--image-root`. See [data setup](../../docs/data_setup.md)
-for the full schema.
-
-Batch prediction takes a CSV with `image_path,target` and optional `image_id`:
-
-```bash
-python -m route_a.engineered predict --model model_bundle/ --input pairs.csv --image-root /path/to/images --out predictions.csv
-```
-
-Choose a new output path for each batch. To replace an existing output CSV,
-add `--overwrite`; the input and output CSV cannot be the same file.
-
-Single-pair prediction prints JSON with a `prediction` number. Batch prediction
-writes one CSV row per input row with a `prediction` column and available
-identity columns. The same interface is available in Python:
+COCO labels use the supplied M2 RT ranking. NSD inventory labels use supplied M2 count scores.
+Prepare and train each label source separately. The adapters copy label values; the training command
+accepts the canonical schema and does not generate labels itself.
 
 ```python
-import pandas as pd
+from route_a.engineered.datasets import load_coco_pairs
 
-from route_a.engineered.predictor import EngineeredPredictor
-
-predictor = EngineeredPredictor.from_bundle('model_bundle/', cache_dir='/path/to/feature-cache')
-score = predictor.predict_image('/path/to/example.jpg', 'chair')
-rows = pd.read_csv('pairs.csv')
-predictions = predictor.predict_batch(rows, image_root='/path/to/images')
+labels = load_coco_pairs('/path/to/coco_ranking.csv', '/path/to/coco/images')
+labels.to_csv('/path/to/labels.csv', index=False)
 ```
 
-The 16 canonical targets are `bottle`, `car`, `chair`, `clock`, `cup`, `fork`,
-`keyboard`, `laptop`, `microwave`, `mouse`, `oven`, `potted plant`, `sink`,
-`stop sign`, `toilet`, and `tv`. Use these spellings in shared data files.
+Obtain [COCO-Search18](https://sites.google.com/view/cocosearch/) or
+[Algonauts 2023](https://algonautsproject.com/2023/challenge.html#challenge-data) images externally.
+NSD physical IDs use the same `nsd-00013` identity across subjects; the adapter resolves the corresponding
+image files. The source inventory is a different schema from the released ranking CSV.
 
-## Runtime options
+| Feature | Weight identifier and source |
+| --- | --- |
+| DINOv2 | [`vit_small_patch14_dinov2.lvd142m`](https://huggingface.co/timm/vit_small_patch14_dinov2.lvd142m), loaded with timm. |
+| CLIP | [`ViT-L-14`, `laion2b_s32b_b82k`](https://huggingface.co/laion/CLIP-ViT-L-14-laion2B-s32B-b82K), loaded with OpenCLIP. |
+| Detector | [`FasterRCNN_ResNet50_FPN_V2_Weights.COCO_V1`](https://docs.pytorch.org/vision/stable/models/generated/torchvision.models.detection.fasterrcnn_resnet50_fpn_v2.html). |
 
-`--device auto` uses an available supported accelerator and otherwise runs on
-CPU. Use `--device cpu` to force CPU execution. The first feature extraction
-may download DINOv2, OpenCLIP, and Faster R-CNN weights through their respective
-libraries; later runs reuse their local weight caches. `--cache-dir` stores
-derived image features for reuse between training or prediction runs. Keep this
-cache and the model bundle outside Git. Weight and cache setup is described in
-[data setup](../../docs/data_setup.md).
+DINO uses its timm pretrained transform; CLIP uses its pretrained transform and L2 normalization.
+Detector evidence uses the top 50 boxes and confidence thresholds 0.5 and 0.7; geometry and target/distractor
+summaries are defined in [features.py](features.py). Weights use the libraries' model caches. Set `HF_HOME`
+and `TORCH_HOME` before Python starts to locate those caches externally. `--features-dir` instead selects
+the derived-feature cache; entries depend on image file metadata and extractor settings.
 
-Training also accepts `--n-estimators`, `--pca-components`, and `--cv-folds`.
-The configuration and learned preprocessing are saved in the bundle. The default
-validation groups rows by physical `image_id` and fits transforms on training
-folds only. Training writes `validation_predictions.csv` next to the three
-bundle files when validation is enabled. Use `--cv-folds 0` to skip validation;
-use `--overwrite` to replace files in an existing output directory.
+## Installation
 
-Keep `model.json`, `preprocessing.joblib`, and `metadata.json` together when
-moving a trained bundle. The image-model weights are downloaded separately and
-are not stored in these files.
+From the repository root, using Python 3.12:
 
-## Scope
+```bash
+python3.12 -m venv .venv-engineered
+source .venv-engineered/bin/activate
+python -m pip install -c route_a/engineered/requirements.lock.txt '.[engineered,dev]'
+```
 
-This package covers the engineered image-and-target Route A predictor. The
-embedding-conditioned neural predictor and paper result reproduction are outside
-this first release.
+The [lockfile](requirements.lock.txt) records the bounded software-validation environment.
+The feature extractor supports `--device auto`, `cpu` and `cuda[:index]`; the regressor uses its configured
+CPU threads. Populate weight caches before offline feature extraction.
+
+## Commands
+
+```bash
+python -m route_a.engineered train --labels-file /path/to/labels.csv \
+  --image-root /path/to/images --output-dir /path/to/model-bundle --features-dir /path/to/features
+python -m route_a.engineered predict --model-dir /path/to/model-bundle \
+  --image-file /path/to/image.jpg --target chair
+python -m route_a.engineered predict --model-dir /path/to/model-bundle \
+  --input-file /path/to/pairs.csv --image-root /path/to/images --output-file /path/to/predictions.csv
+```
+
+`route-a-engineered` is the equivalent console command. Training accepts `--n-estimators`,
+`--pca-components`, `--cv-folds` and `--seed`. Use `--cv-folds 0` to skip validation.
+Use `--overwrite` when intentionally replacing an existing bundle or prediction CSV. Batch output must
+differ from its input CSV. Prediction can override `--device` and reuse `--features-dir`.
+
+The Python interface is `EngineeredPredictor.from_bundle(...).predict_image(image_path, target)` or
+`predict_batch(frame, image_root=...)`; the feature-cache keyword in Python is `cache_dir`.
+
+## Outputs
+
+Keep `model.json`, `preprocessing.joblib` and `metadata.json` together as one bundle. It stores the regressor,
+preprocessing, feature schema, weight identifiers and training configuration. Pretrained image-model weights
+stay in their separate caches. Grouped training also writes `validation_predictions.csv` with identities,
+labels, predictions and fold numbers. Single-image prediction prints JSON; batch prediction writes CSV.
+
+## Paper targets and reproducibility settings
+
+The manuscript's Table 4 gives MAE 0.167, Spearman 0.650, Pearson 0.677 and Kendall 0.469 for its
+“All together PCA-64” row, on 12,476 samples. Those values are paper targets with the manuscript's population
+unit; the command's training population is the supplied canonical table and is recorded in bundle metadata.
+
+The submitted command defaults are seed 42, five grouped folds, separate PCA-64 features, 300 trees,
+absolute-error objective, learning rate 0.03, maximum depth 6, row and column subsampling 0.8, L2 penalty 1.0,
+`hist` tree method and four CPU jobs. [training.py](training.py) and [preprocessing.py](preprocessing.py)
+define the full recipe and saved transforms.

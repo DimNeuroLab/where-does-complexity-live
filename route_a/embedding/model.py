@@ -6,7 +6,7 @@ embeddings (no fMRI), with FiLM target conditioning from
 
 The encoder input is selected by ``features``: ``'all'`` (DINO + CLIP, the
 paper's main model, Fig. 5/6 and Table 6) or ``'clip_only'`` / ``'dino_only'``
-(the feature-family ablation, Appendix Fig./Table B1).
+(the feature-family ablation, Appendix Figure B1).
 """
 
 from __future__ import annotations
@@ -73,8 +73,8 @@ def select_features(
 class ImageComplexityDataset(Dataset):
   """Image-embedding complexity dataset (no fMRI, no subject ID).
 
-  Every unique ``(nsd_id, task)`` pair in the complexity records becomes one
-  sample. DINO/CLIP image features are subject-independent (the same NSD
+  Every retained complexity record becomes one sample, including repeated
+  ``(nsd_id, task)`` pairs. DINO/CLIP image features are subject-independent (the same NSD
   image yields the same embedding regardless of which subject viewed it),
   so each image's features are loaded once, from whichever subject saw it
   first.
@@ -341,7 +341,7 @@ def make_model(arch: str, features: FeatureSet = 'all', n_categories: int = 16) 
     :class:`Encoder` + :class:`ComplexityHead <shared.complexity_head.ComplexityHead>` model, or
     ``'direct'`` for a :class:`DirectFeedModel` with no encoder MLP.
   :param features: ``'all'`` (DINO + CLIP, Fig. 5/6 and Table 6),
-    ``'clip_only'`` or ``'dino_only'`` (Appendix Fig./Table B1).
+    ``'clip_only'`` or ``'dino_only'`` (Appendix Figure B1).
   """
   if arch == 'direct':
     return DirectFeedModel(features=features, n_categories=n_categories)

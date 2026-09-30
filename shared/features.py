@@ -1,13 +1,14 @@
 """DINOv2 and CLIP ViT-L/14 embedding extraction for NSD training images.
 
-Reused by Route A (embedding-conditioned stimulus readout) and Route B
-(neural readout auxiliary targets and text conditioning).
+Used by Route A's embedding-conditioned stimulus readout. Route B retains
+its own feature extraction implementation.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import Sequence
+from typing import Protocol, Self, cast
 
 import numpy as np
 import torch
@@ -20,17 +21,36 @@ from shared.constants import CLIP_MODEL_NAME, CLIP_PRETRAINED, DINO_MODEL_NAME
 from shared.nsd_utils import list_training_images
 
 
+class DinoModel(Protocol):
+  """Operations used from the external DINOv2 model."""
+
+  blocks: Sequence[Callable[[torch.Tensor], torch.Tensor]]
+
+  def to(self, device: str) -> Self: ...
+  def eval(self) -> Self: ...
+  def prepare_tokens_with_masks(self, images: torch.Tensor) -> torch.Tensor: ...
+
+
+class ClipModel(Protocol):
+  """Operations used from the external OpenCLIP model."""
+
+  def to(self, device: str) -> Self: ...
+  def eval(self) -> Self: ...
+  def encode_image(self, images: torch.Tensor) -> torch.Tensor: ...
+  def encode_text(self, tokens: torch.Tensor) -> torch.Tensor: ...
+
+
 class _ImagePathDataset(Dataset):
   """Loads images from disk, substituting a gray placeholder on read errors."""
 
-  def __init__(self, paths: Sequence[Path], transform) -> None:
+  def __init__(self, paths: Sequence[Path], transform: Callable[[Image.Image], torch.Tensor]) -> None:
     self.paths = list(paths)
     self.transform = transform
 
   def __len__(self) -> int:
     return len(self.paths)
 
-  def __getitem__(self, index: int):
+  def __getitem__(self, index: int) -> tuple[torch.Tensor, int]:
     try:
       image = Image.open(self.paths[index]).convert('RGB')
     except Exception:
@@ -42,13 +62,15 @@ class _ImagePathDataset(Dataset):
 # DINOv2
 # ---------------------------------------------------------------------------
 
-def build_dino_model(model_name: str = DINO_MODEL_NAME, device: str = 'cuda'):
+def build_dino_model(
+  model_name: str = DINO_MODEL_NAME, device: str = 'cuda',
+) -> tuple[DinoModel, transforms.Compose]:
   """Load DINOv2 ViT-L/14 and its input transform.
 
   Respects ``TORCH_HOME`` for the torch.hub weights cache; see
-  ``docs/data_setup.md`` for the recommended setup.
+  the embedding component README for input and cache setup.
   """
-  model = torch.hub.load('facebookresearch/dinov2', model_name)
+  model = cast(DinoModel, torch.hub.load('facebookresearch/dinov2', model_name))
   model = model.to(device).eval()
   transform = transforms.Compose([
     transforms.Resize(256, interpolation=transforms.InterpolationMode.BICUBIC),
@@ -62,8 +84,8 @@ def build_dino_model(model_name: str = DINO_MODEL_NAME, device: str = 'cuda'):
 @torch.no_grad()
 def extract_dino_all_layers(
   image_paths: Sequence[Path],
-  model,
-  transform,
+  model: DinoModel,
+  transform: Callable[[Image.Image], torch.Tensor],
   batch_size: int = 64,
   device: str = 'cuda',
   num_workers: int = 8,
@@ -137,11 +159,13 @@ PROMPT_TEMPLATES: list[str] = [
 ]
 
 
-def build_clip_model(model_name: str = CLIP_MODEL_NAME, pretrained: str = CLIP_PRETRAINED, device: str = 'cuda'):
+def build_clip_model(
+  model_name: str = CLIP_MODEL_NAME, pretrained: str = CLIP_PRETRAINED, device: str = 'cuda',
+) -> tuple[ClipModel, Callable[[Image.Image], torch.Tensor], Callable[[list[str]], torch.Tensor]]:
   """Load OpenCLIP and its preprocessing transform and tokenizer.
 
   Respects ``HF_HOME`` and OpenCLIP's own cache env vars for the weights
-  cache; see ``docs/data_setup.md``.
+  cache; see the embedding component README.
   """
   import open_clip
 
@@ -154,8 +178,8 @@ def build_clip_model(model_name: str = CLIP_MODEL_NAME, pretrained: str = CLIP_P
 @torch.no_grad()
 def extract_clip_image_features(
   image_paths: Sequence[Path],
-  model,
-  preprocess,
+  model: ClipModel,
+  preprocess: Callable[[Image.Image], torch.Tensor],
   batch_size: int = 128,
   device: str = 'cuda',
   num_workers: int = 8,
@@ -177,8 +201,8 @@ def extract_clip_image_features(
 @torch.no_grad()
 def extract_clip_text_features(
   categories: Sequence[str],
-  model,
-  tokenizer,
+  model: ClipModel,
+  tokenizer: Callable[[list[str]], torch.Tensor],
   device: str = 'cuda',
 ) -> dict[str, np.ndarray]:
   """Prompt-ensembled, L2-normalised CLIP text embeddings, one per category."""

@@ -1,0 +1,7 @@
+include README.md FLAWS.md readout-routes.svg .editorconfig
+recursive-include complexity/tests *.py
+recursive-include route_a/engineered/tests *.py
+recursive-include route_a/embedding/tests *.py
+recursive-include route_b/tests *.py
+global-exclude __pycache__ *.py[cod]
+exclude CLEANUP_PLAN.tmp.md

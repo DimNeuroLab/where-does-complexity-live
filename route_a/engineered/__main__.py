@@ -16,14 +16,24 @@ from route_a.engineered.training import TrainingConfig, train_engineered
 
 
 def _parser() -> argparse.ArgumentParser:
-  parser = argparse.ArgumentParser(description='Train or use the engineered Route A complexity predictor.')
+  parser = argparse.ArgumentParser(allow_abbrev=False, description='Train or use the engineered Route A complexity predictor.')
   commands = parser.add_subparsers(dest='command', required=True)
 
-  train = commands.add_parser('train', help='Train a complete model bundle from labeled image-target pairs.')
-  train.add_argument('--data', type=Path, required=True, help='CSV with image_id,image_path,target,score columns.')
+  train = commands.add_parser(
+    'train',
+    allow_abbrev=False,
+    help='Train a complete model bundle from labeled image-target pairs.',
+  )
+  train.add_argument(
+    '--labels-file',
+    dest='data',
+    type=Path,
+    required=True,
+    help='CSV with image_id,image_path,target,score columns.',
+  )
   train.add_argument('--image-root', type=Path, default=None, help='Base directory for relative image paths.')
-  train.add_argument('--out', type=Path, required=True, help='New directory for the trained model bundle.')
-  train.add_argument('--cache-dir', type=Path, default=None, help='Feature cache directory.')
+  train.add_argument('--output-dir', dest='out', type=Path, required=True, help='New directory for the trained model bundle.')
+  train.add_argument('--features-dir', dest='cache_dir', type=Path, default=None, help='Feature cache directory.')
   train.add_argument('--device', default='auto', help='Feature extraction device: auto, cpu, or cuda[:index].')
   train.add_argument('--n-estimators', type=int, default=300)
   train.add_argument('--pca-components', type=int, default=64)
@@ -31,15 +41,21 @@ def _parser() -> argparse.ArgumentParser:
   train.add_argument('--seed', type=int, default=42)
   train.add_argument('--overwrite', action='store_true', help='Replace files in an existing output directory.')
 
-  predict = commands.add_parser('predict', help='Predict from one image-target pair or an input CSV.')
-  predict.add_argument('--model', type=Path, required=True, help='Directory containing the complete model bundle.')
+  predict = commands.add_parser('predict', allow_abbrev=False, help='Predict from one image-target pair or an input CSV.')
+  predict.add_argument(
+    '--model-dir',
+    dest='model',
+    type=Path,
+    required=True,
+    help='Directory containing the complete model bundle.',
+  )
   source = predict.add_mutually_exclusive_group(required=True)
-  source.add_argument('--image', type=Path, help='One input image.')
-  source.add_argument('--input', type=Path, help='CSV with image_path,target columns.')
-  predict.add_argument('--target', help='Search target for --image.')
+  source.add_argument('--image-file', dest='image', type=Path, help='One input image.')
+  source.add_argument('--input-file', dest='input', type=Path, help='CSV with image_path,target columns.')
+  predict.add_argument('--target', help='Search target for --image-file.')
   predict.add_argument('--image-root', type=Path, default=None, help='Base directory for relative CSV image paths.')
-  predict.add_argument('--out', type=Path, help='Output CSV path for batch predictions.')
-  predict.add_argument('--cache-dir', type=Path, default=None, help='Feature cache directory.')
+  predict.add_argument('--output-file', dest='out', type=Path, help='Output CSV path for batch predictions.')
+  predict.add_argument('--features-dir', dest='cache_dir', type=Path, default=None, help='Feature cache directory.')
   predict.add_argument('--device', default=None, help='Override bundle device: auto, cpu, or cuda[:index].')
   predict.add_argument('--overwrite', action='store_true', help='Replace an existing batch output CSV.')
   return parser
@@ -81,13 +97,13 @@ def _train(args: argparse.Namespace) -> int:
 def _predict(args: argparse.Namespace) -> int:
   if args.image is not None:
     if args.target is None:
-      raise ValueError('--target is required with --image.')
+      raise ValueError('--target is required with --image-file.')
     if args.out is not None:
-      raise ValueError('--out is for batch prediction with --input.')
+      raise ValueError('--output-file is for batch prediction with --input-file.')
   elif args.target is not None:
-    raise ValueError('--target is only used with --image; batch CSV rows supply their targets.')
+    raise ValueError('--target is only used with --image-file; batch CSV rows supply their targets.')
   if args.input is not None and args.out is None:
-    raise ValueError('--out is required with --input.')
+    raise ValueError('--output-file is required with --input-file.')
   if args.input is not None and args.out is not None:
     if args.input.resolve() == args.out.resolve():
       raise ValueError('Batch output must differ from the input CSV.')

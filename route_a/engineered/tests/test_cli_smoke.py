@@ -38,7 +38,7 @@ class _StubExtractor:
     return pd.concat([canonical.reset_index(drop=True), pd.DataFrame(rows)], axis=1)
 
 
-def test_train_then_predict_cli(tmp_path, monkeypatch, capsys) -> None:
+def test_train_then_predict_cli(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
   monkeypatch.setattr(cli, 'ImageTargetFeatureExtractor', _StubExtractor)
   monkeypatch.setattr(predictor_module, 'ImageTargetFeatureExtractor', _StubExtractor)
   image_root = tmp_path / 'images'
@@ -58,7 +58,7 @@ def test_train_then_predict_cli(tmp_path, monkeypatch, capsys) -> None:
   pd.DataFrame(labels).to_csv(labels_path, index=False)
   model_dir = tmp_path / 'model_bundle'
   assert cli.main([
-    'train', '--data', str(labels_path), '--image-root', str(image_root), '--out', str(model_dir),
+    'train', '--labels-file', str(labels_path), '--image-root', str(image_root), '--output-dir', str(model_dir),
     '--n-estimators', '3', '--pca-components', '2', '--cv-folds', '2',
   ]) == 0
   assert (model_dir / 'model.json').is_file()
@@ -66,7 +66,7 @@ def test_train_then_predict_cli(tmp_path, monkeypatch, capsys) -> None:
   assert (model_dir / 'metadata.json').is_file()
   capsys.readouterr()
   assert cli.main([
-    'predict', '--model', str(model_dir), '--image', str(image_root / 'image-0.png'), '--target', 'chair',
+    'predict', '--model-dir', str(model_dir), '--image-file', str(image_root / 'image-0.png'), '--target', 'chair',
   ]) == 0
   response = json.loads(capsys.readouterr().out)
   assert response['target'] == 'chair'
@@ -75,8 +75,8 @@ def test_train_then_predict_cli(tmp_path, monkeypatch, capsys) -> None:
   pd.DataFrame([{'image_path': 'image-1.png', 'target': 'car'}]).to_csv(pair_path, index=False)
   predictions_path = tmp_path / 'predictions.csv'
   assert cli.main([
-    'predict', '--model', str(model_dir), '--input', str(pair_path), '--image-root', str(image_root),
-    '--out', str(predictions_path),
+    'predict', '--model-dir', str(model_dir), '--input-file', str(pair_path), '--image-root', str(image_root),
+    '--output-file', str(predictions_path),
   ]) == 0
   predictions = pd.read_csv(predictions_path)
   assert len(predictions) == 1
@@ -84,10 +84,10 @@ def test_train_then_predict_cli(tmp_path, monkeypatch, capsys) -> None:
   original_input = pair_path.read_text(encoding='utf-8')
   with pytest.raises(SystemExit, match='2'):
     cli.main([
-      'predict', '--model', str(model_dir), '--input', str(pair_path), '--out', str(pair_path),
+      'predict', '--model-dir', str(model_dir), '--input-file', str(pair_path), '--output-file', str(pair_path),
     ])
   assert pair_path.read_text(encoding='utf-8') == original_input
   with pytest.raises(SystemExit, match='2'):
     cli.main([
-      'predict', '--model', str(model_dir), '--input', str(pair_path), '--out', str(predictions_path),
+      'predict', '--model-dir', str(model_dir), '--input-file', str(pair_path), '--output-file', str(predictions_path),
     ])
