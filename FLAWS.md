@@ -17,6 +17,7 @@ Numerical tolerances are approved only within their experiment-specific populati
 | Embedding Route A main/global/per-subject workflows | Implemented, independently unverified | Main model definition was checked on synthetic tensors; historical trained checkpoint replay is unavailable. |
 | Embedding feature-family ablations | Implemented, independently unverified | Contributed flags are retained; authoritative feature-specific artifacts were not recovered. |
 | Route A identity-bearing variance workflow | Missing | Required original predictions and decomposition source were not recovered. |
+| Cross-route analysis workflow | Missing | The code retains Complexity and Route B variance utilities, but no complete common-population cross-route workflow. |
 | Complexity historical joint CV calculation | Independently checked | Five joint variants match the frozen original on synthetic posteriors; this is not a full scientific rerun. |
 | Unfiltered RT-table input preparation | Independently checked | 31,010 trials and 2,779 labels; the prepared CSV matches the previous provenance probe byte for byte. Full table reproduction remains unresolved. |
 | Canonical NSD labels | Independently checked | All 12,447 rows retain the original bytes, order and scores. |
@@ -40,8 +41,8 @@ is not explained by a small numerical tolerance. The two candidate fits support 
 historical replay. **Historical behavior:** retain both explicitly named input flows and the original model
 definitions; do not label synthetic input as human. **Deferred remedy:** recover the remaining evidence or
 revise the scientific account and tables together. See [RT models](complexity/models/fit_response_time.py)
-and the [component workflow](complexity/README.md). The external September 14 RT provenance audit preserves
-the recovered tables, source identities, commands and numerical comparisons.
+and the [component workflow](complexity/README.md). Recovered summaries and targeted M1/M2 results support this population assignment;
+they do not replace the missing complete original execution evidence.
 
 ### C-2. Original joint CV pairs parameters from different posterior draws
 
@@ -188,7 +189,7 @@ and [datasets](https://github.com/DimNeuroLab/where-does-complexity-live/blob/94
 **Status and evidence:** Unresolved. Tables 4, 5 and B1 report 12,476 samples, OpenCLIP and residual fMRI
 PLS16. The recovered NSD notebook reports 9,137 stimulus rows and 2,190 fMRI rows on six subjects and lacks
 the final PLS16 recipe. Its feature CSVs and the final table-producing source were not found in the
-examined branches and workspaces. The user does not know their location. PR #1 does not implement the
+examined branches and workspaces. PR #1 does not implement the
 full feature grid or fMRI augmentation.
 
 **Consequences:** These paper results cannot presently be claimed reproduced. **Historical behavior:**
@@ -218,7 +219,7 @@ and [PR #1 loader](https://github.com/DimNeuroLab/where-does-complexity-live/blo
 ### A2-1. Row folds share images and use global category means
 
 **Status and evidence:** Confirmed inherited behavior. The dataset retains all 12,108 training records,
-including repeated image-target pairs; the dataset documentation now describes that behavior. Shuffled row folds put 476, 480, 454, 487 and 482 physical
+including repeated image-target pairs. Shuffled row folds put 476, 480, 454, 487 and 482 physical
 images on both sides of training and validation. Category means are computed from all records before folding.
 
 **Consequences:** This is not the common image-grouped outer CV described in the cross-route manuscript
@@ -262,7 +263,7 @@ ablations, not this model.
 **Consequences:** Main-model definition equivalence cannot validate feature-family results or recover trained
 weights. **Historical behavior:** retain the combined small/noise-zero recipe with saved Table 6 and Figure 6
 evidence. **Retained behavior:** keep the contributed feature-family flags as implemented but independently unverified.
-**Deferred remedy:** recover feature-specific artifacts. Current documentation identifies Figure B1 correctly. See the
+**Deferred remedy:** recover feature-specific artifacts. The feature-family experiment belongs to Figure B1. See the
 [PR #2 README](https://github.com/DimNeuroLab/where-does-complexity-live/blob/174c84cce03686adc665cab4890a7342d0cbf1e8/route_a/embedding/README.md).
 
 ## Cross-route analyses
@@ -301,8 +302,9 @@ differences. See [B models](route_b/models/complexity.py), [B features](route_b/
 ### X-3. ScanDiff acquisition is not fully specified by a public source revision
 
 **Status and evidence:** Unresolved acquisition information. The external ScanDiff checkout, configuration,
-visual-search checkpoint and task embeddings are identified by the recovered file hashes in the
-[generation manifest](complexity/generation/source_manifest.json). The original AIPA README links an
+visual-search checkpoint and task embeddings have recovered file identities. The required artifact hashes
+and external-source layout are retained in the
+[generation instructions](complexity/README.md#regenerate-scanpaths-from-prepared-images). The original AIPA README links an
 installation tutorial, but that link does not establish a verified public source revision and download
 for every required artifact.
 
@@ -311,3 +313,36 @@ external ScanDiff materials for regeneration. **Retained behavior:** use the exp
 artifact inputs described in the [generation instructions](complexity/README.md#regenerate-scanpaths-from-prepared-images).
 **Deferred remedy:** establish and verify an accessible, versioned acquisition route. Do not substitute a
 different source or weights merely because they are downloadable.
+
+
+### X-4. Software checks and environment locks have bounded scope
+
+**Status and evidence:** Independently checked software interfaces, with unverified scientific results kept
+separate. Configuration-relative paths, public command dispatch, ranking resources, engineered bundle
+round trips and synthetic interruption/recovery checks exercise supported behavior. The statistical
+cleanup preserves executable calculations; historical CV fixtures and marginal LOO checks use synthetic
+posteriors without sampling. These checks do not independently reproduce Route A's reported results.
+
+The Route A lockfiles record the environment used for bounded validation, including XGBoost 3.4.1.
+They are not recovered original training environments. Submitted feature loaders retain their model
+identifiers and unpinned source choices; Route B's pinned backbone recipe is separate. Full clean-install
+validation and full scientific reruns are different checks.
+
+**Consequences:** An import, synthetic fit or lockfile alone cannot support a paper-result reproduction claim.
+**Retained behavior:** preserve submitted recipes, saved formats and historical inputs; use the component
+commands and [dependency locks](route_a/README.md#inputs-and-installation) with their documented scope.
+**Deferred remedy:** obtain authoritative historical artifacts and conduct experiment-specific validation
+when required. Numerical acceptance limits do not waive identity, completeness or diagnostic requirements.
+
+### X-5. Prepared input acquisition is distinct from public dataset availability
+
+**Status and evidence:** Public COCO-Search18, NSD/Algonauts and backbone sources identify the underlying
+resources. The measurement commands start from merged scanpath JSONs, prepared target-category image trees,
+bounding-box JSONs and complete NSD augmentation metadata. The complete published acquisition path for
+these prepared experimental inputs and the final engineered feature tables is not established by those
+upstream links. Trained Route A/Route B bundles and historical posteriors are not bundled with this source.
+
+**Consequences:** Public source links alone do not establish a complete end-to-end reconstruction of every
+paper input. **Retained behavior:** require explicit inputs with the [documented schemas](complexity/README.md#inputs-identities-and-sources)
+and preserve the canonical ranking. **Deferred remedy:** identify and publish the exact prepared artifacts
+or recover their preparation provenance before claiming a fully available reproduction package.

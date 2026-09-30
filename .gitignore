@@ -1,5 +1,5 @@
 .venv
-.venv-routeb/
+.venv-*/
 __pycache__/
 *.py[cod]
 *.egg-info/
